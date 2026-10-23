@@ -1,0 +1,15 @@
+package payload
+
+import (
+	"github.com/grandper/go-screenplay/v2/screenplay"
+
+	"github.com/grandper/go-screenplay-udp/ability"
+	"github.com/grandper/go-screenplay-udp/question/internal/datagram"
+)
+
+// Of asks for the payload of the datagram the question answers with; it reads
+// "payload of last of UDP datagrams". A nil datagram is an error wrapping
+// question.ErrDatagramIsNil.
+func Of(question screenplay.Question[*ability.Datagram]) screenplay.Question[[]byte] {
+	return datagram.Of("payload of", question, (*ability.Datagram).Data)
+}
