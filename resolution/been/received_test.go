@@ -9,14 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay-udp/ability"
 	"github.com/grandper/go-screenplay-udp/action/receive"
 	"github.com/grandper/go-screenplay-udp/action/send"
 	udpfixture "github.com/grandper/go-screenplay-udp/fixture"
 	internalfixture "github.com/grandper/go-screenplay-udp/internal/fixture"
-	"github.com/grandper/go-screenplay-udp/question"
 	questionfixture "github.com/grandper/go-screenplay-udp/question/fixture"
 	"github.com/grandper/go-screenplay-udp/resolution/been"
+	"github.com/grandper/go-screenplay-udp/udp"
 )
 
 func TestReceived(t *testing.T) {
@@ -25,28 +24,28 @@ func TestReceived(t *testing.T) {
 	unknown := questionfixture.CreateFakeDatagram("?", "not an address")
 
 	t.Run("matches when at least one datagram has been received", func(t *testing.T) {
-		fixture.AssertMatch(t, been.Received(), []*ability.Datagram{ping})
-		fixture.AssertMatch(t, been.Received(), []*ability.Datagram{ping, pong})
+		fixture.AssertMatch(t, been.Received(), []*udp.Datagram{ping})
+		fixture.AssertMatch(t, been.Received(), []*udp.Datagram{ping, pong})
 	})
 
 	t.Run("does not match when no datagram has been received", func(t *testing.T) {
-		fixture.AssertNoMatch(t, been.Received(), []*ability.Datagram{})
+		fixture.AssertNoMatch(t, been.Received(), []*udp.Datagram{})
 		fixture.AssertNoMatch(t, been.Received(), nil)
 	})
 
 	t.Run("matches when a datagram has been received from the address", func(t *testing.T) {
-		fixture.AssertMatch(t, been.ReceivedFrom("127.0.0.1:9001"), []*ability.Datagram{ping, pong})
-		fixture.AssertMatch(t, been.ReceivedFrom("localhost:9001"), []*ability.Datagram{ping, pong})
+		fixture.AssertMatch(t, been.ReceivedFrom("127.0.0.1:9001"), []*udp.Datagram{ping, pong})
+		fixture.AssertMatch(t, been.ReceivedFrom("localhost:9001"), []*udp.Datagram{ping, pong})
 	})
 
 	t.Run("does not match when no datagram has been received from the address", func(t *testing.T) {
-		fixture.AssertNoMatch(t, been.ReceivedFrom("127.0.0.1:9001"), []*ability.Datagram{ping, unknown})
-		fixture.AssertNoMatch(t, been.ReceivedFrom("127.0.0.1:9001"), []*ability.Datagram{nil})
+		fixture.AssertNoMatch(t, been.ReceivedFrom("127.0.0.1:9001"), []*udp.Datagram{ping, unknown})
+		fixture.AssertNoMatch(t, been.ReceivedFrom("127.0.0.1:9001"), []*udp.Datagram{nil})
 		fixture.AssertNoMatch(t, been.ReceivedFrom("127.0.0.1:9001"), nil)
 	})
 
 	t.Run("is invalid when the address cannot be resolved", func(t *testing.T) {
-		fixture.AssertInvalid(t, been.ReceivedFrom("not an address"), []*ability.Datagram{ping})
+		fixture.AssertInvalid(t, been.ReceivedFrom("not an address"), []*udp.Datagram{ping})
 	})
 
 	t.Run("reads as a sentence with the question", func(t *testing.T) {
@@ -54,7 +53,7 @@ func TestReceived(t *testing.T) {
 		echo := udpfixture.RunAnEchoUDPServer(t)
 		adam := internalfixture.NarratedActor("Adam", recorder, udpfixture.ListenOnAFreeUDPPort(t))
 
-		err := adam.Should(see.The(question.UDPDatagramsFrom(echo.String())).ShouldHave(been.Received()))
+		err := adam.Should(see.The(udp.DatagramsFrom(echo.String())).ShouldHave(been.Received()))
 		require.EqualError(
 			t,
 			err,
@@ -63,7 +62,7 @@ func TestReceived(t *testing.T) {
 		)
 
 		require.NoError(t, adam.AttemptsTo(send.TheDatagram("ping").To(echo.String()), receive.TheNextDatagram()))
-		require.NoError(t, adam.Should(see.The(question.UDPDatagrams()).ShouldHave(been.ReceivedFrom(echo.String()))))
+		require.NoError(t, adam.Should(see.The(udp.Datagrams()).ShouldHave(been.ReceivedFrom(echo.String()))))
 		assert.Contains(
 			t,
 			recorder.Messages(),

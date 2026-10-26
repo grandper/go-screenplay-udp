@@ -70,9 +70,9 @@ var (
 // "communicate over UDP using the connection conn" and "communicate over UDP
 // listening on 127.0.0.1:9000":
 //
-//	CommunicateOverUDP().UsingTheConnection(conn)
-//	CommunicateOverUDP().ListeningOn("127.0.0.1:9000")
-//	CommunicateOverUDP().ListeningOnAFreePort()
+//	communicate.OverUDP().UsingTheConnection(conn)
+//	communicate.OverUDP().ListeningOn("127.0.0.1:9000")
+//	communicate.OverUDP().ListeningOnAFreePort()
 func CommunicateOverUDP() *CommunicateOverUDPAbility {
 	return &CommunicateOverUDPAbility{}
 }
@@ -135,7 +135,7 @@ func (c *CommunicateOverUDPAbility) ListeningOn(address string) *CommunicateOver
 // ListeningOnAFreePort gives the ability a port chosen by the system on the
 // loopback interface to listen on; it reads "listening on a free port". The
 // port is bound the first time the ability is used, and the question
-// LocalUDPAddress tells which one it is.
+// local.UDPAddress tells which one it is.
 func (c *CommunicateOverUDPAbility) ListeningOnAFreePort() *CommunicateOverUDPAbility {
 	return c.ListeningOn(FreePortAddress)
 }

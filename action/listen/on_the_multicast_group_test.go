@@ -8,12 +8,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay-udp/ability"
-	"github.com/grandper/go-screenplay-udp/action"
+	"github.com/grandper/go-screenplay-udp/ability/communicate"
 	"github.com/grandper/go-screenplay-udp/action/listen"
 	"github.com/grandper/go-screenplay-udp/fixture"
 	internalfixture "github.com/grandper/go-screenplay-udp/internal/fixture"
-	"github.com/grandper/go-screenplay-udp/question"
+	"github.com/grandper/go-screenplay-udp/question/local"
+	"github.com/grandper/go-screenplay-udp/udp"
 )
 
 const multicastGroup = "224.0.0.251:0"
@@ -21,35 +21,35 @@ const multicastGroup = "224.0.0.251:0"
 func TestOnTheMulticastGroup(t *testing.T) {
 	t.Run("listens on a multicast group", func(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP())
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
 
 			require.NoError(t, adam.AttemptsTo(listen.OnTheMulticastGroup(multicastGroup)))
 
-			local, err := adam.AsksFor(question.LocalUDPAddress())
+			local, err := adam.AsksFor(local.UDPAddress())
 			require.NoError(t, err)
 			assert.Positive(t, local.Port)
 			require.NoError(t, adam.Exit())
 		})
 
 		t.Run("fails when the address is empty", func(t *testing.T) {
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP())
-			require.ErrorIs(t, adam.AttemptsTo(listen.OnTheMulticastGroup("")), action.ErrAddressIsEmpty)
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
+			require.ErrorIs(t, adam.AttemptsTo(listen.OnTheMulticastGroup("")), udp.ErrAddressIsEmpty)
 		})
 
 		t.Run("fails when the address cannot be resolved", func(t *testing.T) {
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP())
-			require.ErrorIs(t, adam.AttemptsTo(listen.OnTheMulticastGroup("not an address")), ability.ErrInvalidAddress)
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
+			require.ErrorIs(t, adam.AttemptsTo(listen.OnTheMulticastGroup("not an address")), udp.ErrInvalidAddress)
 		})
 
 		t.Run("fails when the address is not a multicast group", func(t *testing.T) {
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP())
-			require.ErrorIs(t, adam.AttemptsTo(listen.OnTheMulticastGroup("127.0.0.1:0")), ability.ErrFailedToListen)
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
+			require.ErrorIs(t, adam.AttemptsTo(listen.OnTheMulticastGroup("127.0.0.1:0")), udp.ErrFailedToListen)
 		})
 
 		t.Run("fails when the actor already holds a connection", func(t *testing.T) {
 			conn := fixture.ListenOnAFreeUDPPort(t)
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().UsingTheConnection(conn))
-			require.ErrorIs(t, adam.AttemptsTo(listen.OnTheMulticastGroup(multicastGroup)), ability.ErrAlreadyListening)
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().UsingTheConnection(conn))
+			require.ErrorIs(t, adam.AttemptsTo(listen.OnTheMulticastGroup(multicastGroup)), udp.ErrAlreadyListening)
 		})
 
 		t.Run("fails when the actor cannot communicate over UDP", func(t *testing.T) {

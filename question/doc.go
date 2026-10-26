@@ -1,13 +1,11 @@
-// Package question holds the questions about the datagrams the actor
-// received and about its connection:
+// Package question gathers the questions of the extension. They live in
+// packages named so that a statement reads as English:
 //
-//	datagrams, err := anActor.AsksFor(question.UDPDatagrams())                     // a []*ability.Datagram
-//	datagrams, err := anActor.AsksFor(question.UDPDatagramsFrom("127.0.0.1:9000")) // a []*ability.Datagram
-//	address, err := anActor.AsksFor(question.LocalUDPAddress())                    // a *net.UDPAddr
+//	datagrams, err := anActor.AsksFor(udp.Datagrams())                     // a []*udp.Datagram
+//	datagrams, err := anActor.AsksFor(udp.DatagramsFrom("127.0.0.1:9000")) // a []*udp.Datagram
+//	address, err := anActor.AsksFor(local.UDPAddress())                    // a *net.UDPAddr
+//	text, err := anActor.AsksFor(text.Of(last.Of(udp.Datagrams())))        // a string
 //
-// A question composes with the core questions, the questions about a
-// datagram and the resolutions of the extension:
-//
-//	err := anActor.Should(see.The(question.UDPDatagrams()).ShouldHave(been.Received()))
-//	err := anActor.Should(see.The(text.Of(last.Of(question.UDPDatagrams()))).Should(be.EqualTo("pong")))
+// A question about a datagram that is asked about a nil datagram fails with an
+// error wrapping udp.ErrDatagramIsNil.
 package question

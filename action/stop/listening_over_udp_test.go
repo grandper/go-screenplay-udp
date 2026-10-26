@@ -11,35 +11,35 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay-udp/ability"
+	"github.com/grandper/go-screenplay-udp/ability/communicate"
 	"github.com/grandper/go-screenplay-udp/action/listen"
 	"github.com/grandper/go-screenplay-udp/action/receive"
 	"github.com/grandper/go-screenplay-udp/action/send"
 	"github.com/grandper/go-screenplay-udp/action/stop"
 	"github.com/grandper/go-screenplay-udp/fixture"
 	internalfixture "github.com/grandper/go-screenplay-udp/internal/fixture"
-	"github.com/grandper/go-screenplay-udp/question"
+	"github.com/grandper/go-screenplay-udp/udp"
 )
 
 func TestListeningOverUDP(t *testing.T) {
 	t.Run("stops listening over UDP", func(t *testing.T) {
 		t.Run("and lets the actor listen again, keeping the datagrams", func(t *testing.T) {
 			echo := fixture.RunAnEchoUDPServer(t)
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 			require.NoError(t, adam.AttemptsTo(send.TheDatagram("ping").To(echo.String()), receive.TheNextDatagram()))
 
 			require.NoError(t, adam.AttemptsTo(stop.ListeningOverUDP()))
 
 			err := adam.AttemptsTo(send.TheDatagram("ping").To(echo.String()))
-			require.ErrorIs(t, err, ability.ErrUDPConnectionNotSet)
+			require.ErrorIs(t, err, udp.ErrUDPConnectionNotSet)
 			require.NoError(t, adam.AttemptsTo(listen.OnAFreeUDPPort()))
-			require.NoError(t, adam.Should(see.The(number.Of(question.UDPDatagrams())).Should(be.EqualTo(1))))
+			require.NoError(t, adam.Should(see.The(number.Of(udp.Datagrams())).Should(be.EqualTo(1))))
 			require.NoError(t, adam.Exit())
 		})
 
 		t.Run("closes a connection the actor was given", func(t *testing.T) {
 			conn := fixture.ListenOnAFreeUDPPort(t)
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().UsingTheConnection(conn))
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().UsingTheConnection(conn))
 
 			require.NoError(t, adam.AttemptsTo(stop.ListeningOverUDP()))
 
@@ -48,8 +48,8 @@ func TestListeningOverUDP(t *testing.T) {
 		})
 
 		t.Run("fails when the actor holds no connection", func(t *testing.T) {
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP())
-			require.ErrorIs(t, adam.AttemptsTo(stop.ListeningOverUDP()), ability.ErrUDPConnectionNotSet)
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
+			require.ErrorIs(t, adam.AttemptsTo(stop.ListeningOverUDP()), udp.ErrUDPConnectionNotSet)
 		})
 
 		t.Run("fails when the actor cannot communicate over UDP", func(t *testing.T) {

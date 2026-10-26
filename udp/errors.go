@@ -1,7 +1,12 @@
-package ability
+package udp
 
-import impl "github.com/grandper/go-screenplay-udp/internal/ability"
+import (
+	"errors"
 
+	impl "github.com/grandper/go-screenplay-udp/internal/ability"
+)
+
+// The errors the ability reports.
 var (
 	// ErrUDPConnectionNotSet is returned when the ability was given neither a
 	// UDP connection nor an address to listen on.
@@ -43,4 +48,22 @@ var (
 	// ErrNoDatagramReceived is returned when the actor replies to the sender of
 	// the last datagram while it has received none.
 	ErrNoDatagramReceived = impl.ErrNoDatagramReceived
+)
+
+// The errors the actions report. Nothing panics when an action is built; a
+// mistake is reported when the actor performs it.
+var (
+	// ErrAddressIsEmpty is returned when an action is given an empty address.
+	ErrAddressIsEmpty = errors.New("the UDP address must be provided")
+
+	// ErrNumberOfDatagramsIsNotPositive is returned when receive.TheNext is
+	// given a number of datagrams that is not positive.
+	ErrNumberOfDatagramsIsNotPositive = errors.New("the number of datagrams to receive must be positive")
+)
+
+// The errors the questions report.
+var (
+	// ErrDatagramIsNil is wrapped by the error returned when a question about a
+	// datagram is asked about a nil datagram.
+	ErrDatagramIsNil = errors.New("the datagram is nil")
 )

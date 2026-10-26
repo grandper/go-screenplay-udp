@@ -8,12 +8,12 @@ import (
 	"github.com/grandper/go-screenplay/v2/action/timing"
 	"github.com/grandper/go-screenplay/v2/screenplay"
 
-	"github.com/grandper/go-screenplay-udp/action"
 	impl "github.com/grandper/go-screenplay-udp/internal/ability"
+	"github.com/grandper/go-screenplay-udp/udp"
 )
 
 // TheNextDatagram receives the next datagram and stores it, where the question
-// UDPDatagrams finds it. The actor waits at most its timeout (see
+// udp.Datagrams finds it. The actor waits at most its timeout (see
 // screenplay.WithTimeout), unless TimingOutAfter is written; it reads
 // "receive the next datagram timing out after 2 seconds":
 //
@@ -70,7 +70,7 @@ type TheNextDatagramAction struct {
 // TimingOutAfter bounds the wait for the datagrams; it reads "timing out
 // after 2 seconds". Without it, the actor waits at most its timeout. A
 // datagram that does not come in time fails the action with an error wrapping
-// ability.ErrFailedToReceive and context.DeadlineExceeded.
+// udp.ErrFailedToReceive and context.DeadlineExceeded.
 func (a *TheNextDatagramAction) TimingOutAfter(amount int) *timing.DurationBuilder[TheNextDatagramAction] {
 	a.timeoutWritten = true
 	a.timeoutBuilder = timing.NewDurationBuilder(a, &a.timeout).For(amount)
@@ -79,11 +79,11 @@ func (a *TheNextDatagramAction) TimingOutAfter(amount int) *timing.DurationBuild
 }
 
 // PerformAs performs the action as the provided actor. It fails with
-// action.ErrNumberOfDatagramsIsNotPositive when the number of datagrams is
+// udp.ErrNumberOfDatagramsIsNotPositive when the number of datagrams is
 // not positive.
 func (a *TheNextDatagramAction) PerformAs(theActor *screenplay.Actor) error {
 	if a.amount <= 0 {
-		return action.ErrNumberOfDatagramsIsNotPositive
+		return udp.ErrNumberOfDatagramsIsNotPositive
 	}
 
 	timeout := theActor.Timeout()

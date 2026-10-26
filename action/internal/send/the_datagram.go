@@ -3,9 +3,9 @@ package send
 import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 
-	"github.com/grandper/go-screenplay-udp/action"
 	impl "github.com/grandper/go-screenplay-udp/internal/ability"
 	"github.com/grandper/go-screenplay-udp/internal/verdict"
+	"github.com/grandper/go-screenplay-udp/udp"
 )
 
 // TheDatagram sends a datagram holding the text to the address given with To,
@@ -63,7 +63,7 @@ func (a *TheDatagramAction) To(address string) *TheDatagramAction {
 
 // ToTheSenderOfTheLastDatagram sends the datagram to the address the last
 // received datagram came from; it reads "to the sender of the last datagram".
-// It fails with ability.ErrNoDatagramReceived when the actor has received no
+// It fails with udp.ErrNoDatagramReceived when the actor has received no
 // datagram.
 func (a *TheDatagramAction) ToTheSenderOfTheLastDatagram() *TheDatagramAction {
 	a.address = ""
@@ -74,15 +74,15 @@ func (a *TheDatagramAction) ToTheSenderOfTheLastDatagram() *TheDatagramAction {
 }
 
 // PerformAs performs the action as the provided actor. It fails with
-// action.ErrAddressIsEmpty when To was given an empty address, and with
-// ability.ErrDestinationNotSet when no address was given and the actor is not
+// udp.ErrAddressIsEmpty when To was given an empty address, and with
+// udp.ErrDestinationNotSet when no address was given and the actor is not
 // connected to one.
 func (a *TheDatagramAction) PerformAs(theActor *screenplay.Actor) error {
 	if a.toTheSender {
 		return impl.TheAbilityOf(theActor).ToSendToTheSenderOfTheLastDatagram(a.data)
 	}
 	if a.toWritten && a.address == "" {
-		return action.ErrAddressIsEmpty
+		return udp.ErrAddressIsEmpty
 	}
 
 	return impl.TheAbilityOf(theActor).ToSend(a.data, a.address)

@@ -9,10 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay-udp/ability"
-	"github.com/grandper/go-screenplay-udp/question"
 	"github.com/grandper/go-screenplay-udp/question/fixture"
 	"github.com/grandper/go-screenplay-udp/question/internal/datagram"
+	"github.com/grandper/go-screenplay-udp/udp"
 )
 
 func TestOf(t *testing.T) {
@@ -22,7 +21,7 @@ func TestOf(t *testing.T) {
 	t.Run("answers with the part of the datagram read", func(t *testing.T) {
 		wrapped := screenplayfixture.NewFakeQuestion("the datagram", pong)
 
-		text, err := adam.AsksFor(datagram.Of("text of", wrapped, (*ability.Datagram).Text))
+		text, err := adam.AsksFor(datagram.Of("text of", wrapped, (*udp.Datagram).Text))
 
 		require.NoError(t, err)
 		assert.Equal(t, "pong", text)
@@ -30,23 +29,23 @@ func TestOf(t *testing.T) {
 
 	t.Run("fails when the wrapped question fails", func(t *testing.T) {
 		errFailed := errors.New("failed")
-		wrapped := screenplayfixture.NewFailingFakeQuestion[*ability.Datagram]("the datagram", errFailed)
+		wrapped := screenplayfixture.NewFailingFakeQuestion[*udp.Datagram]("the datagram", errFailed)
 
-		_, err := adam.AsksFor(datagram.Of("text of", wrapped, (*ability.Datagram).Text))
+		_, err := adam.AsksFor(datagram.Of("text of", wrapped, (*udp.Datagram).Text))
 
 		require.ErrorIs(t, err, errFailed)
 	})
 
 	t.Run("fails when the datagram is nil", func(t *testing.T) {
-		wrapped := screenplayfixture.NewFakeQuestion[*ability.Datagram]("the datagram", nil)
+		wrapped := screenplayfixture.NewFakeQuestion[*udp.Datagram]("the datagram", nil)
 
-		_, err := adam.AsksFor(datagram.Of("text of", wrapped, (*ability.Datagram).Text))
+		_, err := adam.AsksFor(datagram.Of("text of", wrapped, (*udp.Datagram).Text))
 
-		require.ErrorIs(t, err, question.ErrDatagramIsNil)
+		require.ErrorIs(t, err, udp.ErrDatagramIsNil)
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
 		wrapped := screenplayfixture.NewFakeQuestion("the datagram", pong)
-		assert.Equal(t, "text of the datagram", datagram.Of("text of", wrapped, (*ability.Datagram).Text).String())
+		assert.Equal(t, "text of the datagram", datagram.Of("text of", wrapped, (*udp.Datagram).Text).String())
 	})
 }

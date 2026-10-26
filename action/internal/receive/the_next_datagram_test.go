@@ -12,18 +12,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay-udp/ability"
-	"github.com/grandper/go-screenplay-udp/action"
+	"github.com/grandper/go-screenplay-udp/ability/communicate"
 	impl "github.com/grandper/go-screenplay-udp/action/internal/receive"
 	"github.com/grandper/go-screenplay-udp/action/send"
 	"github.com/grandper/go-screenplay-udp/fixture"
-	"github.com/grandper/go-screenplay-udp/question"
+	"github.com/grandper/go-screenplay-udp/udp"
 )
 
 func TestTheNextDatagram(t *testing.T) {
 	t.Run("receives one datagram and stores it", func(t *testing.T) {
 		echo := fixture.RunAnEchoUDPServer(t)
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 		require.NoError(
 			t,
 			adam.AttemptsTo(send.TheDatagram("1").To(echo.String()), send.TheDatagram("2").To(echo.String())),
@@ -31,7 +30,7 @@ func TestTheNextDatagram(t *testing.T) {
 
 		require.NoError(t, adam.AttemptsTo(impl.TheNextDatagram()))
 
-		datagrams, err := adam.AsksFor(question.UDPDatagrams())
+		datagrams, err := adam.AsksFor(udp.Datagrams())
 		require.NoError(t, err)
 		require.Len(t, datagrams, 1)
 		assert.Equal(t, "1", datagrams[0].Text())
@@ -40,8 +39,8 @@ func TestTheNextDatagram(t *testing.T) {
 	})
 
 	t.Run("fails when the connection is not set", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP())
-		require.ErrorIs(t, adam.AttemptsTo(impl.TheNextDatagram()), ability.ErrUDPConnectionNotSet)
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
+		require.ErrorIs(t, adam.AttemptsTo(impl.TheNextDatagram()), udp.ErrUDPConnectionNotSet)
 	})
 
 	t.Run("fails when the actor cannot communicate over UDP", func(t *testing.T) {
@@ -61,7 +60,7 @@ func TestTheNextDatagram(t *testing.T) {
 func TestTheNext(t *testing.T) {
 	t.Run("receives as many datagrams as the amount, in order", func(t *testing.T) {
 		echo := fixture.RunAnEchoUDPServer(t)
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 		require.NoError(t, adam.AttemptsTo(
 			send.TheDatagram("1").To(echo.String()),
 			send.TheDatagram("2").To(echo.String()),
@@ -70,7 +69,7 @@ func TestTheNext(t *testing.T) {
 
 		require.NoError(t, adam.AttemptsTo(impl.TheNext(2).Datagrams()))
 
-		datagrams, err := adam.AsksFor(question.UDPDatagrams())
+		datagrams, err := adam.AsksFor(udp.Datagrams())
 		require.NoError(t, err)
 		require.Len(t, datagrams, 2)
 		assert.Equal(t, "1", datagrams[0].Text())
@@ -80,38 +79,38 @@ func TestTheNext(t *testing.T) {
 
 	t.Run("receives one datagram in the singular", func(t *testing.T) {
 		echo := fixture.RunAnEchoUDPServer(t)
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 		require.NoError(t, adam.AttemptsTo(send.TheDatagram("1").To(echo.String())))
 
 		require.NoError(t, adam.AttemptsTo(impl.TheNext(1).Datagram()))
 
-		require.NoError(t, adam.Should(see.The(number.Of(question.UDPDatagrams())).Should(be.EqualTo(1))))
+		require.NoError(t, adam.Should(see.The(number.Of(udp.Datagrams())).Should(be.EqualTo(1))))
 		require.NoError(t, adam.Exit())
 	})
 
 	t.Run("keeps the datagrams received before the one that fails", func(t *testing.T) {
 		echo := fixture.RunAnEchoUDPServer(t)
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 		require.NoError(t, adam.AttemptsTo(send.TheDatagram("1").To(echo.String())))
 
 		err := adam.AttemptsTo(impl.TheNext(2).Datagrams().TimingOutAfter(50).Milliseconds())
 
-		require.ErrorIs(t, err, ability.ErrFailedToReceive)
+		require.ErrorIs(t, err, udp.ErrFailedToReceive)
 		require.ErrorIs(t, err, context.DeadlineExceeded)
-		require.NoError(t, adam.Should(see.The(number.Of(question.UDPDatagrams())).Should(be.EqualTo(1))))
+		require.NoError(t, adam.Should(see.The(number.Of(udp.Datagrams())).Should(be.EqualTo(1))))
 		require.NoError(t, adam.Exit())
 	})
 
 	t.Run("fails when the amount is not positive", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
-		require.ErrorIs(t, adam.AttemptsTo(impl.TheNext(0).Datagrams()), action.ErrNumberOfDatagramsIsNotPositive)
-		require.ErrorIs(t, adam.AttemptsTo(impl.TheNext(-1).Datagram()), action.ErrNumberOfDatagramsIsNotPositive)
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
+		require.ErrorIs(t, adam.AttemptsTo(impl.TheNext(0).Datagrams()), udp.ErrNumberOfDatagramsIsNotPositive)
+		require.ErrorIs(t, adam.AttemptsTo(impl.TheNext(-1).Datagram()), udp.ErrNumberOfDatagramsIsNotPositive)
 		require.NoError(t, adam.Exit())
 	})
 
 	t.Run("reports an amount that is not positive before looking for the ability", func(t *testing.T) {
 		err := screenplay.ActorNamed("Adam").AttemptsTo(impl.TheNext(0).Datagrams())
-		require.ErrorIs(t, err, action.ErrNumberOfDatagramsIsNotPositive)
+		require.ErrorIs(t, err, udp.ErrNumberOfDatagramsIsNotPositive)
 		require.NotErrorIs(t, err, screenplay.ErrActorMissingAbility)
 	})
 
@@ -129,12 +128,12 @@ func TestTheNextDatagramAction_TimingOutAfter(t *testing.T) {
 		production := screenplay.NewProduction(screenplay.WithTimeout(50 * time.Millisecond))
 		adam := production.SetTheStage(screenplay.CastOfStandardActors()).
 			ActorNamed("Adam").
-			WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+			WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 
 		start := time.Now()
 		err := adam.AttemptsTo(impl.TheNextDatagram())
 
-		require.ErrorIs(t, err, ability.ErrFailedToReceive)
+		require.ErrorIs(t, err, udp.ErrFailedToReceive)
 		require.ErrorIs(t, err, context.DeadlineExceeded)
 		assert.Less(t, time.Since(start), time.Second)
 		require.NoError(t, adam.Exit())
@@ -144,12 +143,12 @@ func TestTheNextDatagramAction_TimingOutAfter(t *testing.T) {
 		production := screenplay.NewProduction(screenplay.WithTimeout(time.Hour))
 		adam := production.SetTheStage(screenplay.CastOfStandardActors()).
 			ActorNamed("Adam").
-			WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+			WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 
 		start := time.Now()
 		err := adam.AttemptsTo(impl.TheNextDatagram().TimingOutAfter(50).Milliseconds())
 
-		require.ErrorIs(t, err, ability.ErrFailedToReceive)
+		require.ErrorIs(t, err, udp.ErrFailedToReceive)
 		require.ErrorIs(t, err, context.DeadlineExceeded)
 		assert.Less(t, time.Since(start), time.Second)
 		require.NoError(t, adam.Exit())
@@ -157,12 +156,12 @@ func TestTheNextDatagramAction_TimingOutAfter(t *testing.T) {
 
 	t.Run("leaves time for a datagram that comes before the timeout", func(t *testing.T) {
 		echo := fixture.RunAnEchoUDPServer(t)
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 		require.NoError(t, adam.AttemptsTo(send.TheDatagram("ping").To(echo.String())))
 
 		require.NoError(t, adam.AttemptsTo(impl.TheNextDatagram().TimingOutAfter(2).Seconds()))
 
-		require.NoError(t, adam.Should(see.The(number.Of(question.UDPDatagrams())).Should(be.EqualTo(1))))
+		require.NoError(t, adam.Should(see.The(number.Of(udp.Datagrams())).Should(be.EqualTo(1))))
 		require.NoError(t, adam.Exit())
 	})
 
@@ -170,7 +169,7 @@ func TestTheNextDatagramAction_TimingOutAfter(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		adam := screenplay.ActorNamed("Adam").
 			WithContext(ctx).
-			WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+			WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 		go func() {
 			time.Sleep(50 * time.Millisecond)
 			cancel()
@@ -178,7 +177,7 @@ func TestTheNextDatagramAction_TimingOutAfter(t *testing.T) {
 
 		err := adam.AttemptsTo(impl.TheNextDatagram().TimingOutAfter(1).Minute())
 
-		require.ErrorIs(t, err, ability.ErrFailedToReceive)
+		require.ErrorIs(t, err, udp.ErrFailedToReceive)
 		require.ErrorIs(t, err, context.Canceled)
 		require.NoError(t, adam.Exit())
 	})

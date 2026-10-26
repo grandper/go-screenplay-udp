@@ -9,7 +9,7 @@ import (
 // ListeningOverUDP closes the connection of the actor and forgets the address
 // it was bound to, so that the actor can listen again; the datagrams received
 // so far are kept. It reads "stop listening over UDP". It fails with
-// ability.ErrUDPConnectionNotSet when the actor holds no connection.
+// udp.ErrUDPConnectionNotSet when the actor holds no connection.
 func ListeningOverUDP() screenplay.Performable {
 	return &listeningOverUDPAction{}
 }

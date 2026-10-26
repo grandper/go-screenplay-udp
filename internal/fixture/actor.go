@@ -6,7 +6,7 @@ import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 	screenplayfixture "github.com/grandper/go-screenplay/v2/screenplay/fixture"
 
-	"github.com/grandper/go-screenplay-udp/ability"
+	"github.com/grandper/go-screenplay-udp/ability/communicate"
 )
 
 // NarratedActor creates an actor whose narration is recorded by the recorder,
@@ -17,5 +17,5 @@ func NarratedActor(name string, recorder *screenplayfixture.Recorder, conn *net.
 
 	return production.SetTheStage(screenplay.CastOfStandardActors()).
 		ActorNamed(name).
-		WhoCan(ability.CommunicateOverUDP().UsingTheConnection(conn))
+		WhoCan(communicate.OverUDP().UsingTheConnection(conn))
 }

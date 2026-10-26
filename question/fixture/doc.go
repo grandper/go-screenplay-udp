@@ -2,5 +2,5 @@
 // the UDP datagrams questions, without a UDP peer:
 //
 //	pong := fixture.CreateFakeDatagram("pong", "127.0.0.1:9000")
-//	fixture.AssertMatch(t, been.ReceivedFrom("127.0.0.1:9000"), []*ability.Datagram{pong})
+//	fixture.AssertMatch(t, been.ReceivedFrom("127.0.0.1:9000"), []*udp.Datagram{pong})
 package fixture

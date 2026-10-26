@@ -9,13 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay-udp/ability"
-	"github.com/grandper/go-screenplay-udp/action"
+	"github.com/grandper/go-screenplay-udp/ability/communicate"
 	"github.com/grandper/go-screenplay-udp/action/connect"
 	impl "github.com/grandper/go-screenplay-udp/action/internal/send"
 	"github.com/grandper/go-screenplay-udp/action/receive"
 	"github.com/grandper/go-screenplay-udp/fixture"
-	"github.com/grandper/go-screenplay-udp/question"
+	"github.com/grandper/go-screenplay-udp/question/local"
+	"github.com/grandper/go-screenplay-udp/udp"
 )
 
 const (
@@ -27,13 +27,13 @@ const (
 func TestTheDatagram(t *testing.T) {
 	t.Run("sends the text as the payload", func(t *testing.T) {
 		peer := fixture.ListenOnAFreeUDPPort(t)
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 
 		require.NoError(t, adam.AttemptsTo(impl.TheDatagram(text).To(peer.LocalAddr().String())))
 
 		data, sender := readFrom(t, peer)
 		assert.Equal(t, []byte(text), data)
-		local, err := adam.AsksFor(question.LocalUDPAddress())
+		local, err := adam.AsksFor(local.UDPAddress())
 		require.NoError(t, err)
 		assert.Equal(t, local.String(), sender.String())
 		require.NoError(t, adam.Exit())
@@ -41,7 +41,7 @@ func TestTheDatagram(t *testing.T) {
 
 	t.Run("goes to the address the actor connected to without a destination", func(t *testing.T) {
 		peer := fixture.ListenOnAFreeUDPPort(t)
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
 		require.NoError(t, adam.AttemptsTo(connect.ToTheUDPAddress(peer.LocalAddr().String())))
 
 		require.NoError(t, adam.AttemptsTo(impl.TheDatagram(text)))
@@ -52,8 +52,8 @@ func TestTheDatagram(t *testing.T) {
 	})
 
 	t.Run("fails without a destination when the actor is not connected", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
-		require.ErrorIs(t, adam.AttemptsTo(impl.TheDatagram(text)), ability.ErrDestinationNotSet)
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
+		require.ErrorIs(t, adam.AttemptsTo(impl.TheDatagram(text)), udp.ErrDestinationNotSet)
 		require.NoError(t, adam.Exit())
 	})
 
@@ -82,7 +82,7 @@ func TestTheBinaryDatagram(t *testing.T) {
 
 	t.Run("sends the bytes as the payload", func(t *testing.T) {
 		peer := fixture.ListenOnAFreeUDPPort(t)
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 
 		require.NoError(t, adam.AttemptsTo(impl.TheBinaryDatagram(binary).To(peer.LocalAddr().String())))
 
@@ -93,11 +93,11 @@ func TestTheBinaryDatagram(t *testing.T) {
 
 	t.Run("fails when the datagram is too large", func(t *testing.T) {
 		peer := fixture.ListenOnAFreeUDPPort(t)
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 
 		err := adam.AttemptsTo(impl.TheBinaryDatagram(make([]byte, 70000)).To(peer.LocalAddr().String()))
 
-		require.ErrorIs(t, err, ability.ErrFailedToSend)
+		require.ErrorIs(t, err, udp.ErrFailedToSend)
 		require.NoError(t, adam.Exit())
 	})
 
@@ -114,7 +114,7 @@ func TestTheBinaryDatagram(t *testing.T) {
 func TestAnEmptyDatagram(t *testing.T) {
 	t.Run("sends a datagram with no payload", func(t *testing.T) {
 		peer := fixture.ListenOnAFreeUDPPort(t)
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 
 		require.NoError(t, adam.AttemptsTo(impl.AnEmptyDatagram().To(peer.LocalAddr().String())))
 
@@ -131,31 +131,31 @@ func TestAnEmptyDatagram(t *testing.T) {
 
 func TestTheDatagramAction_To(t *testing.T) {
 	t.Run("fails when the address is empty", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
-		require.ErrorIs(t, adam.AttemptsTo(impl.TheDatagram(text).To("")), action.ErrAddressIsEmpty)
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
+		require.ErrorIs(t, adam.AttemptsTo(impl.TheDatagram(text).To("")), udp.ErrAddressIsEmpty)
 		require.NoError(t, adam.Exit())
 	})
 
 	t.Run("reports an empty address before looking for the ability", func(t *testing.T) {
 		err := screenplay.ActorNamed("Adam").AttemptsTo(impl.TheDatagram(text).To(""))
-		require.ErrorIs(t, err, action.ErrAddressIsEmpty)
+		require.ErrorIs(t, err, udp.ErrAddressIsEmpty)
 		require.NotErrorIs(t, err, screenplay.ErrActorMissingAbility)
 	})
 
 	t.Run("fails when the address cannot be resolved", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
-		require.ErrorIs(t, adam.AttemptsTo(impl.TheDatagram(text).To("not an address")), ability.ErrInvalidAddress)
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
+		require.ErrorIs(t, adam.AttemptsTo(impl.TheDatagram(text).To("not an address")), udp.ErrInvalidAddress)
 		require.NoError(t, adam.Exit())
 	})
 
 	t.Run("fails when the actor is connected to another address", func(t *testing.T) {
 		peer := fixture.ListenOnAFreeUDPPort(t)
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
 		require.NoError(t, adam.AttemptsTo(connect.ToTheUDPAddress(peer.LocalAddr().String())))
 
 		err := adam.AttemptsTo(impl.TheDatagram(text).To(address))
 
-		require.ErrorIs(t, err, ability.ErrConnectedToAnotherAddress)
+		require.ErrorIs(t, err, udp.ErrConnectedToAnotherAddress)
 		require.NoError(t, adam.Exit())
 	})
 
@@ -172,8 +172,8 @@ func TestTheDatagramAction_ToTheSenderOfTheLastDatagram(t *testing.T) {
 	t.Run("replies to the sender of the last received datagram", func(t *testing.T) {
 		first := fixture.ListenOnAFreeUDPPort(t)
 		last := fixture.ListenOnAFreeUDPPort(t)
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
-		local, err := adam.AsksFor(question.LocalUDPAddress())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
+		local, err := adam.AsksFor(local.UDPAddress())
 		require.NoError(t, err)
 		_, err = first.WriteToUDP([]byte("ping"), local)
 		require.NoError(t, err)
@@ -194,9 +194,9 @@ func TestTheDatagramAction_ToTheSenderOfTheLastDatagram(t *testing.T) {
 	})
 
 	t.Run("fails when no datagram has been received", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 		err := adam.AttemptsTo(impl.TheDatagram("pong").ToTheSenderOfTheLastDatagram())
-		require.ErrorIs(t, err, ability.ErrNoDatagramReceived)
+		require.ErrorIs(t, err, udp.ErrNoDatagramReceived)
 		require.NoError(t, adam.Exit())
 	})
 
@@ -206,11 +206,11 @@ func TestTheDatagramAction_ToTheSenderOfTheLastDatagram(t *testing.T) {
 	})
 
 	t.Run("replaces the address written before", func(t *testing.T) {
-		adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 		theAction := impl.TheDatagram("pong").To("").ToTheSenderOfTheLastDatagram()
 
 		assert.Equal(t, `send the datagram "pong" to the sender of the last datagram`, theAction.String())
-		require.ErrorIs(t, adam.AttemptsTo(theAction), ability.ErrNoDatagramReceived)
+		require.ErrorIs(t, adam.AttemptsTo(theAction), udp.ErrNoDatagramReceived)
 		require.NoError(t, adam.Exit())
 	})
 }

@@ -3,6 +3,6 @@
 // connection bound to a free port.
 //
 //	echo := fixture.RunAnEchoUDPServer(t)
-//	anActor := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+//	anActor := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 //	err := anActor.AttemptsTo(send.TheDatagram("ping").To(echo.String()))
 package fixture

@@ -3,7 +3,7 @@ package receive
 import impl "github.com/grandper/go-screenplay-udp/action/internal/receive"
 
 // TheNextDatagram receives the next datagram and stores it, where the question
-// UDPDatagrams finds it. The actor waits at most its timeout (see
+// udp.Datagrams finds it. The actor waits at most its timeout (see
 // screenplay.WithTimeout), unless TimingOutAfter is written; it reads
 // "receive the next datagram timing out after 2 seconds":
 //

@@ -3,5 +3,5 @@
 // operations, through TheAbilityOf; a test gives the ability to an actor
 // through the public package:
 //
-//	anActor := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+//	anActor := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 package ability

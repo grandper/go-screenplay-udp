@@ -1,5 +1,5 @@
-// Package action holds the errors of the actions that drive a UDP
-// connection. The actions live in packages named after their verb:
+// Package action gathers the actions that drive a UDP connection. They live
+// in packages named after their verb:
 //
 //	listen.OnTheUDPAddress("127.0.0.1:9000")              action/listen
 //	listen.OnAFreeUDPPort()                                action/listen
@@ -17,4 +17,8 @@
 //		send.TheDatagram("ping").To("127.0.0.1:9000"),
 //		receive.TheNextDatagram(),
 //	)
+//
+// Nothing panics when an action is built. A mistake, such as an empty
+// address, is reported when the actor performs the action, with
+// udp.ErrAddressIsEmpty or udp.ErrNumberOfDatagramsIsNotPositive.
 package action

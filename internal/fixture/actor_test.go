@@ -8,12 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay-udp/ability"
+	"github.com/grandper/go-screenplay-udp/ability/communicate"
 	"github.com/grandper/go-screenplay-udp/action/listen"
 	"github.com/grandper/go-screenplay-udp/action/send"
 	udpfixture "github.com/grandper/go-screenplay-udp/fixture"
 	"github.com/grandper/go-screenplay-udp/internal/fixture"
-	"github.com/grandper/go-screenplay-udp/question"
+	"github.com/grandper/go-screenplay-udp/question/local"
+	"github.com/grandper/go-screenplay-udp/udp"
 )
 
 func TestNarratedActor(t *testing.T) {
@@ -42,8 +43,8 @@ func TestNarratedActor(t *testing.T) {
 		conn := udpfixture.ListenOnAFreeUDPPort(t)
 		adam := fixture.NarratedActor("Adam", screenplayfixture.NewRecorder(), conn)
 
-		assert.True(t, adam.HasAbilityTo(ability.CommunicateOverUDP()))
-		local, err := adam.AsksFor(question.LocalUDPAddress())
+		assert.True(t, adam.HasAbilityTo(communicate.OverUDP()))
+		local, err := adam.AsksFor(local.UDPAddress())
 		require.NoError(t, err)
 		assert.Equal(t, conn.LocalAddr().String(), local.String())
 	})
@@ -51,12 +52,12 @@ func TestNarratedActor(t *testing.T) {
 	t.Run("gives the actor the ability without a connection when it is nil", func(t *testing.T) {
 		adam := fixture.NarratedActor("Adam", screenplayfixture.NewRecorder(), nil)
 
-		assert.True(t, adam.HasAbilityTo(ability.CommunicateOverUDP()))
-		_, err := adam.AsksFor(question.LocalUDPAddress())
-		require.ErrorIs(t, err, ability.ErrUDPConnectionNotSet)
+		assert.True(t, adam.HasAbilityTo(communicate.OverUDP()))
+		_, err := adam.AsksFor(local.UDPAddress())
+		require.ErrorIs(t, err, udp.ErrUDPConnectionNotSet)
 
 		require.NoError(t, adam.AttemptsTo(listen.OnAFreeUDPPort()))
-		_, err = adam.AsksFor(question.LocalUDPAddress())
+		_, err = adam.AsksFor(local.UDPAddress())
 		require.NoError(t, err)
 		require.NoError(t, adam.Exit())
 	})
@@ -66,9 +67,9 @@ func TestNarratedActor(t *testing.T) {
 		adam := fixture.NarratedActor("Adam", recorder, udpfixture.ListenOnAFreeUDPPort(t))
 		eve := fixture.NarratedActor("Eve", recorder, udpfixture.ListenOnAFreeUDPPort(t))
 
-		adamAddress, err := adam.AsksFor(question.LocalUDPAddress())
+		adamAddress, err := adam.AsksFor(local.UDPAddress())
 		require.NoError(t, err)
-		eveAddress, err := eve.AsksFor(question.LocalUDPAddress())
+		eveAddress, err := eve.AsksFor(local.UDPAddress())
 		require.NoError(t, err)
 
 		assert.NotEqual(t, adamAddress.String(), eveAddress.String())

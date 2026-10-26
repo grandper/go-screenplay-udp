@@ -5,18 +5,17 @@ import (
 
 	"github.com/grandper/go-screenplay/v2/screenplay"
 
-	"github.com/grandper/go-screenplay-udp/ability"
-	"github.com/grandper/go-screenplay-udp/question"
+	"github.com/grandper/go-screenplay-udp/udp"
 )
 
 // Of creates a question that answers with the part of the datagram the
 // function reads, after the wrapped question answered with the datagram; the
 // description is the head of the phrase, such as "text of". A nil datagram
-// is an error wrapping question.ErrDatagramIsNil.
+// is an error wrapping udp.ErrDatagramIsNil.
 func Of[T any](
 	head string,
-	wrapped screenplay.Question[*ability.Datagram],
-	read func(*ability.Datagram) T,
+	wrapped screenplay.Question[*udp.Datagram],
+	read func(*udp.Datagram) T,
 ) screenplay.Question[T] {
 	return &ofQuestion[T]{head: head, wrapped: wrapped, read: read}
 }
@@ -25,8 +24,8 @@ func Of[T any](
 // with.
 type ofQuestion[T any] struct {
 	head    string
-	wrapped screenplay.Question[*ability.Datagram]
-	read    func(*ability.Datagram) T
+	wrapped screenplay.Question[*udp.Datagram]
+	read    func(*udp.Datagram) T
 }
 
 // AnsweredBy asks the wrapped question and reads the part of its answer.
@@ -38,7 +37,7 @@ func (q *ofQuestion[T]) AnsweredBy(theActor *screenplay.Actor) (T, error) {
 		return zero, err
 	}
 	if datagram == nil {
-		return zero, fmt.Errorf("%w: %s", question.ErrDatagramIsNil, q.wrapped)
+		return zero, fmt.Errorf("%w: %s", udp.ErrDatagramIsNil, q.wrapped)
 	}
 
 	return q.read(datagram), nil

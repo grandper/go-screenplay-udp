@@ -13,25 +13,24 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay-udp/ability"
-	"github.com/grandper/go-screenplay-udp/action"
+	"github.com/grandper/go-screenplay-udp/ability/communicate"
 	"github.com/grandper/go-screenplay-udp/action/receive"
 	"github.com/grandper/go-screenplay-udp/action/send"
 	"github.com/grandper/go-screenplay-udp/fixture"
 	internalfixture "github.com/grandper/go-screenplay-udp/internal/fixture"
-	"github.com/grandper/go-screenplay-udp/question"
+	"github.com/grandper/go-screenplay-udp/udp"
 )
 
 func TestTheNextDatagram(t *testing.T) {
 	t.Run("receives the next datagram", func(t *testing.T) {
 		t.Run("successfully", func(t *testing.T) {
 			echo := fixture.RunAnEchoUDPServer(t)
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 			require.NoError(t, adam.AttemptsTo(send.TheDatagram("ping").To(echo.String())))
 
 			require.NoError(t, adam.AttemptsTo(receive.TheNextDatagram()))
 
-			datagrams, err := adam.AsksFor(question.UDPDatagrams())
+			datagrams, err := adam.AsksFor(udp.Datagrams())
 			require.NoError(t, err)
 			require.Len(t, datagrams, 1)
 			assert.Equal(t, "ping", datagrams[0].Text())
@@ -41,7 +40,7 @@ func TestTheNextDatagram(t *testing.T) {
 
 		t.Run("several at once", func(t *testing.T) {
 			echo := fixture.RunAnEchoUDPServer(t)
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 			require.NoError(t, adam.AttemptsTo(
 				send.TheDatagram("1").To(echo.String()),
 				send.TheDatagram("2").To(echo.String()),
@@ -50,7 +49,7 @@ func TestTheNextDatagram(t *testing.T) {
 
 			require.NoError(t, adam.AttemptsTo(receive.TheNext(2).Datagrams(), receive.TheNext(1).Datagram()))
 
-			require.NoError(t, adam.Should(see.The(number.Of(question.UDPDatagrams())).Should(be.EqualTo(3))))
+			require.NoError(t, adam.Should(see.The(number.Of(udp.Datagrams())).Should(be.EqualTo(3))))
 			require.NoError(t, adam.Exit())
 		})
 
@@ -58,24 +57,24 @@ func TestTheNextDatagram(t *testing.T) {
 			production := screenplay.NewProduction(screenplay.WithTimeout(50 * time.Millisecond))
 			adam := production.SetTheStage(screenplay.CastOfStandardActors()).
 				ActorNamed("Adam").
-				WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+				WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 
 			start := time.Now()
 			err := adam.AttemptsTo(receive.TheNextDatagram())
 
-			require.ErrorIs(t, err, ability.ErrFailedToReceive)
+			require.ErrorIs(t, err, udp.ErrFailedToReceive)
 			require.ErrorIs(t, err, context.DeadlineExceeded)
 			assert.Less(t, time.Since(start), time.Second)
 			require.NoError(t, adam.Exit())
 		})
 
 		t.Run("waits at most the timeout written", func(t *testing.T) {
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 
 			start := time.Now()
 			err := adam.AttemptsTo(receive.TheNextDatagram().TimingOutAfter(50).Milliseconds())
 
-			require.ErrorIs(t, err, ability.ErrFailedToReceive)
+			require.ErrorIs(t, err, udp.ErrFailedToReceive)
 			require.ErrorIs(t, err, context.DeadlineExceeded)
 			assert.Less(t, time.Since(start), time.Second)
 			require.NoError(t, adam.Exit())
@@ -83,7 +82,7 @@ func TestTheNextDatagram(t *testing.T) {
 
 		t.Run("waits at most the timeout for all of them", func(t *testing.T) {
 			echo := fixture.RunAnEchoUDPServer(t)
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 			require.NoError(t, adam.AttemptsTo(send.TheDatagram("1").To(echo.String())))
 
 			start := time.Now()
@@ -91,7 +90,7 @@ func TestTheNextDatagram(t *testing.T) {
 
 			require.ErrorIs(t, err, context.DeadlineExceeded)
 			assert.Less(t, time.Since(start), time.Second)
-			require.NoError(t, adam.Should(see.The(number.Of(question.UDPDatagrams())).Should(be.EqualTo(1))))
+			require.NoError(t, adam.Should(see.The(number.Of(udp.Datagrams())).Should(be.EqualTo(1))))
 			require.NoError(t, adam.Exit())
 		})
 
@@ -99,7 +98,7 @@ func TestTheNextDatagram(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			adam := screenplay.ActorNamed("Adam").
 				WithContext(ctx).
-				WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+				WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 			go func() {
 				time.Sleep(50 * time.Millisecond)
 				cancel()
@@ -112,23 +111,23 @@ func TestTheNextDatagram(t *testing.T) {
 		})
 
 		t.Run("fails when the number of datagrams is not positive", func(t *testing.T) {
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().ListeningOnAFreePort())
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 			require.ErrorIs(
 				t,
 				adam.AttemptsTo(receive.TheNext(0).Datagrams()),
-				action.ErrNumberOfDatagramsIsNotPositive,
+				udp.ErrNumberOfDatagramsIsNotPositive,
 			)
 			require.ErrorIs(
 				t,
 				adam.AttemptsTo(receive.TheNext(-1).Datagrams()),
-				action.ErrNumberOfDatagramsIsNotPositive,
+				udp.ErrNumberOfDatagramsIsNotPositive,
 			)
 			require.NoError(t, adam.Exit())
 		})
 
 		t.Run("fails when the connection is not set", func(t *testing.T) {
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP())
-			require.ErrorIs(t, adam.AttemptsTo(receive.TheNextDatagram()), ability.ErrUDPConnectionNotSet)
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
+			require.ErrorIs(t, adam.AttemptsTo(receive.TheNextDatagram()), udp.ErrUDPConnectionNotSet)
 		})
 
 		t.Run("fails when the actor cannot communicate over UDP", func(t *testing.T) {

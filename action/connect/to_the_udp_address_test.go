@@ -9,52 +9,51 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay-udp/ability"
-	"github.com/grandper/go-screenplay-udp/action"
+	"github.com/grandper/go-screenplay-udp/ability/communicate"
 	"github.com/grandper/go-screenplay-udp/action/connect"
 	"github.com/grandper/go-screenplay-udp/action/receive"
 	"github.com/grandper/go-screenplay-udp/action/send"
 	"github.com/grandper/go-screenplay-udp/fixture"
 	internalfixture "github.com/grandper/go-screenplay-udp/internal/fixture"
-	"github.com/grandper/go-screenplay-udp/question"
 	"github.com/grandper/go-screenplay-udp/resolution/been"
+	"github.com/grandper/go-screenplay-udp/udp"
 )
 
 func TestToTheUDPAddress(t *testing.T) {
 	t.Run("connects to a UDP address", func(t *testing.T) {
 		t.Run("successfully, and sends to it without an address", func(t *testing.T) {
 			echo := fixture.RunAnEchoUDPServer(t)
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP())
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
 
 			require.NoError(t, adam.AttemptsTo(connect.ToTheUDPAddress(echo.String())))
 
 			require.NoError(t, adam.AttemptsTo(send.TheDatagram("ping"), receive.TheNextDatagram()))
 			require.NoError(
 				t,
-				adam.Should(see.The(question.UDPDatagrams()).ShouldHave(been.ReceivedFrom(echo.String()))),
+				adam.Should(see.The(udp.Datagrams()).ShouldHave(been.ReceivedFrom(echo.String()))),
 			)
 			require.NoError(t, adam.Exit())
 		})
 
 		t.Run("fails when the address is empty", func(t *testing.T) {
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP())
-			require.ErrorIs(t, adam.AttemptsTo(connect.ToTheUDPAddress("")), action.ErrAddressIsEmpty)
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
+			require.ErrorIs(t, adam.AttemptsTo(connect.ToTheUDPAddress("")), udp.ErrAddressIsEmpty)
 		})
 
 		t.Run("fails when the address cannot be resolved", func(t *testing.T) {
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP())
-			require.ErrorIs(t, adam.AttemptsTo(connect.ToTheUDPAddress("not an address")), ability.ErrInvalidAddress)
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
+			require.ErrorIs(t, adam.AttemptsTo(connect.ToTheUDPAddress("not an address")), udp.ErrInvalidAddress)
 		})
 
 		t.Run("fails when the connection cannot be opened", func(t *testing.T) {
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP())
-			require.ErrorIs(t, adam.AttemptsTo(connect.ToTheUDPAddress("127.0.0.1:0")), ability.ErrFailedToConnect)
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
+			require.ErrorIs(t, adam.AttemptsTo(connect.ToTheUDPAddress("127.0.0.1:0")), udp.ErrFailedToConnect)
 		})
 
 		t.Run("fails when the actor already holds a connection", func(t *testing.T) {
 			conn := fixture.ListenOnAFreeUDPPort(t)
-			adam := screenplay.ActorNamed("Adam").WhoCan(ability.CommunicateOverUDP().UsingTheConnection(conn))
-			require.ErrorIs(t, adam.AttemptsTo(connect.ToTheUDPAddress("127.0.0.1:9000")), ability.ErrAlreadyListening)
+			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().UsingTheConnection(conn))
+			require.ErrorIs(t, adam.AttemptsTo(connect.ToTheUDPAddress("127.0.0.1:9000")), udp.ErrAlreadyListening)
 		})
 
 		t.Run("fails when the actor cannot communicate over UDP", func(t *testing.T) {
