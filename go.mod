@@ -1,9 +1,9 @@
 module github.com/grandper/go-screenplay-udp
 
-go 1.27.2
+go 1.27.3
 
 require (
-	github.com/grandper/go-screenplay/v2 v2.0.0
+	github.com/grandper/go-screenplay/v2 v2.1.0
 	github.com/stretchr/testify v1.11.1
 )
 
