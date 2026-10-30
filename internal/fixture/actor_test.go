@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/grandper/go-screenplay-udp/ability/communicate"
+	"github.com/grandper/go-screenplay-udp/action/connect"
 	"github.com/grandper/go-screenplay-udp/action/listen"
 	"github.com/grandper/go-screenplay-udp/action/send"
 	"github.com/grandper/go-screenplay-udp/internal/fixture"
@@ -84,5 +85,30 @@ func TestNarratedActor(t *testing.T) {
 
 	t.Run("implements the actor of go-screenplay", func(t *testing.T) {
 		assert.IsType(t, (*screenplay.Actor)(nil), fixture.NarratedActor("Adam", screenplayfixture.NewRecorder(), nil))
+	})
+}
+
+func TestActorWhoCannotOpenAConnection(t *testing.T) {
+	t.Run("creates an actor with the name who can communicate over UDP", func(t *testing.T) {
+		adam := fixture.ActorWhoCannotOpenAConnection(t, "Adam")
+
+		assert.Equal(t, "Adam", adam.Name())
+		assert.True(t, adam.HasAbilityTo(communicate.OverUDP()))
+	})
+
+	t.Run("refuses to open the connections of the actor", func(t *testing.T) {
+		adam := fixture.ActorWhoCannotOpenAConnection(t, "Adam")
+
+		err := adam.AttemptsTo(connect.ToTheUDPAddress("127.0.0.1:9000"))
+
+		require.ErrorIs(t, err, udp.ErrFailedToConnect)
+		require.ErrorIs(t, err, fixture.ErrConnectionRefused)
+	})
+
+	t.Run("lets the actor listen", func(t *testing.T) {
+		adam := fixture.ActorWhoCannotOpenAConnection(t, "Adam")
+
+		require.NoError(t, adam.AttemptsTo(listen.OnAFreeUDPPort()))
+		require.NoError(t, adam.Exit())
 	})
 }

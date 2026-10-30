@@ -71,6 +71,12 @@ err := impl.TheAbilityOf(theActor).ToSend(data, "127.0.0.1:9000")
 ```
 `TheAbilityOf` never fails: when the actor cannot communicate over UDP, the operation reports `screenplay.ErrActorMissingAbility`.
 
+One operation serves the tests of the extension only: `ToOpenConnectionsWith` replaces `net.DialUDP` with a dialer of their own, reading "the ability of the actor to open connections with the dialer". Whether an address can be connected to depends on the platform (Linux accepts port 0, macOS and Windows refuse it), so a test of a connection that cannot be opened relies on a dialer that refuses, never on an address; a nil dialer restores `net.DialUDP`:
+```go
+refuse := func(*net.UDPAddr) (*net.UDPConn, error) { return nil, errRefused }
+err := impl.TheAbilityOf(theActor).ToOpenConnectionsWith(refuse)
+```
+
 The ability is safe for concurrent use: actions running in parallel (see `proceed.ConcurrentlyTo`) can send and receive without racing. One datagram is received at a time, so concurrent receives wait for one another.
 
 ## Actions

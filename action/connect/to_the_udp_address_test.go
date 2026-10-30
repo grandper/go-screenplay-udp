@@ -45,8 +45,8 @@ func TestToTheUDPAddress(t *testing.T) {
 		})
 
 		t.Run("fails when the connection cannot be opened", func(t *testing.T) {
-			adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP())
-			require.ErrorIs(t, adam.AttemptsTo(connect.ToTheUDPAddress("127.0.0.1:0")), udp.ErrFailedToConnect)
+			adam := fixture.ActorWhoCannotOpenAConnection(t, "Adam")
+			require.ErrorIs(t, adam.AttemptsTo(connect.ToTheUDPAddress("127.0.0.1:9000")), udp.ErrFailedToConnect)
 		})
 
 		t.Run("fails when the actor already holds a connection", func(t *testing.T) {

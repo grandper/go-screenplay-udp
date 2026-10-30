@@ -102,7 +102,14 @@ type CommunicateOverUDPAbility struct {
 	received []*Datagram
 	// kept is the number of bytes the payloads of the received datagrams hold.
 	kept int
+
+	// dial opens the connection to a remote address; nil stands for
+	// net.DialUDP.
+	dial Dialer
 }
+
+// Dialer opens a connection to the remote address, as net.DialUDP does.
+type Dialer func(remote *net.UDPAddr) (*net.UDPConn, error)
 
 // UsingTheConnection provides the UDP connection to the ability; it reads
 // "using the connection conn". A connection already held by the ability is
@@ -236,6 +243,26 @@ func (o *Operations) ToListenOnTheMulticastGroup(address string) error {
 // ability, it fails with screenplay.ErrActorMissingAbility.
 func (o *Operations) ToConnectTo(address string) error {
 	return o.open(func(c *CommunicateOverUDPAbility) error { return c.connect(address) })
+}
+
+// ToOpenConnectionsWith makes the ability open its connections with the
+// dialer instead of net.DialUDP; it reads "the ability of the actor to open
+// connections with the dialer". A test uses it to make the opening fail the
+// same way on every platform, and a nil dialer restores net.DialUDP. When
+// the actor does not have the ability, it fails with
+// screenplay.ErrActorMissingAbility.
+func (o *Operations) ToOpenConnectionsWith(dial Dialer) error {
+	c := o.ability
+	if c == nil {
+		return screenplay.ErrActorMissingAbility
+	}
+
+	c.binding.Lock()
+	defer c.binding.Unlock()
+
+	c.dial = dial
+
+	return nil
 }
 
 // open runs the function that opens the connection, unless the ability
@@ -504,7 +531,11 @@ func (c *CommunicateOverUDPAbility) connect(address string) error {
 		return err
 	}
 
-	conn, err := net.DialUDP("udp", nil, remote)
+	dial := c.dial
+	if dial == nil {
+		dial = func(remote *net.UDPAddr) (*net.UDPConn, error) { return net.DialUDP("udp", nil, remote) }
+	}
+	conn, err := dial(remote)
 	if err != nil {
 		return fmt.Errorf("%w %q: %w", ErrFailedToConnect, address, err)
 	}

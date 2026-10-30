@@ -208,11 +208,29 @@ func TestCommunicateOverUDP(t *testing.T) {
 			require.NoError(t, adam.Exit())
 		})
 
-		t.Run("fails when the address cannot be resolved or reached", func(t *testing.T) {
+		t.Run("fails when the address cannot be resolved", func(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam").WhoCan(impl.CommunicateOverUDP())
 
 			require.ErrorIs(t, impl.TheAbilityOf(adam).ToConnectTo("not an address"), impl.ErrInvalidAddress)
-			require.ErrorIs(t, impl.TheAbilityOf(adam).ToConnectTo("127.0.0.1:0"), impl.ErrFailedToConnect)
+		})
+
+		t.Run("fails when the connection cannot be opened", func(t *testing.T) {
+			adam := fixture.ActorWhoCannotOpenAConnection(t, "Adam")
+
+			err := impl.TheAbilityOf(adam).ToConnectTo("127.0.0.1:9000")
+
+			require.ErrorIs(t, err, impl.ErrFailedToConnect)
+			require.ErrorIs(t, err, fixture.ErrConnectionRefused)
+		})
+
+		t.Run("with the system again when no dialer is given", func(t *testing.T) {
+			echo := fixture.RunAnEchoUDPServer(t)
+			adam := fixture.ActorWhoCannotOpenAConnection(t, "Adam")
+
+			require.NoError(t, impl.TheAbilityOf(adam).ToOpenConnectionsWith(nil))
+
+			require.NoError(t, impl.TheAbilityOf(adam).ToConnectTo(echo.String()))
+			require.NoError(t, adam.Exit())
 		})
 	})
 
@@ -523,6 +541,7 @@ func TestCommunicateOverUDP(t *testing.T) {
 				screenplay.ErrActorMissingAbility,
 			)
 			require.ErrorIs(t, operations.ToConnectTo("127.0.0.1:9000"), screenplay.ErrActorMissingAbility)
+			require.ErrorIs(t, operations.ToOpenConnectionsWith(nil), screenplay.ErrActorMissingAbility)
 			require.ErrorIs(t, operations.ToSend([]byte("ping"), "127.0.0.1:9000"), screenplay.ErrActorMissingAbility)
 			require.ErrorIs(
 				t,
