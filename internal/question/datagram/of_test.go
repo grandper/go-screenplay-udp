@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay-udp/question/fixture"
-	"github.com/grandper/go-screenplay-udp/question/internal/datagram"
+	"github.com/grandper/go-screenplay-udp/internal/fixture"
+	"github.com/grandper/go-screenplay-udp/internal/question/datagram"
 	"github.com/grandper/go-screenplay-udp/udp"
 )
 

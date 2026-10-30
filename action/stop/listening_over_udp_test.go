@@ -16,8 +16,7 @@ import (
 	"github.com/grandper/go-screenplay-udp/action/receive"
 	"github.com/grandper/go-screenplay-udp/action/send"
 	"github.com/grandper/go-screenplay-udp/action/stop"
-	"github.com/grandper/go-screenplay-udp/fixture"
-	internalfixture "github.com/grandper/go-screenplay-udp/internal/fixture"
+	"github.com/grandper/go-screenplay-udp/internal/fixture"
 	"github.com/grandper/go-screenplay-udp/udp"
 )
 
@@ -60,7 +59,7 @@ func TestListeningOverUDP(t *testing.T) {
 
 	t.Run("is narrated", func(t *testing.T) {
 		recorder := screenplayfixture.NewRecorder()
-		adam := internalfixture.NarratedActor("Adam", recorder, fixture.ListenOnAFreeUDPPort(t))
+		adam := fixture.NarratedActor("Adam", recorder, fixture.ListenOnAFreeUDPPort(t))
 
 		require.NoError(t, adam.AttemptsTo(stop.ListeningOverUDP()))
 

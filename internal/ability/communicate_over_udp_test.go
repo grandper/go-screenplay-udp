@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/grandper/go-screenplay-udp/fixture"
 	impl "github.com/grandper/go-screenplay-udp/internal/ability"
+	"github.com/grandper/go-screenplay-udp/internal/fixture"
 )
 
 const (

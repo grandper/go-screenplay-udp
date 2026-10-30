@@ -11,17 +11,15 @@ import (
 
 	"github.com/grandper/go-screenplay-udp/action/receive"
 	"github.com/grandper/go-screenplay-udp/action/send"
-	udpfixture "github.com/grandper/go-screenplay-udp/fixture"
-	internalfixture "github.com/grandper/go-screenplay-udp/internal/fixture"
-	questionfixture "github.com/grandper/go-screenplay-udp/question/fixture"
+	udpfixture "github.com/grandper/go-screenplay-udp/internal/fixture"
 	"github.com/grandper/go-screenplay-udp/resolution/been"
 	"github.com/grandper/go-screenplay-udp/udp"
 )
 
 func TestReceived(t *testing.T) {
-	ping := questionfixture.CreateFakeDatagram("ping", "127.0.0.1:9000")
-	pong := questionfixture.CreateFakeDatagram("pong", "127.0.0.1:9001")
-	unknown := questionfixture.CreateFakeDatagram("?", "not an address")
+	ping := udpfixture.CreateFakeDatagram("ping", "127.0.0.1:9000")
+	pong := udpfixture.CreateFakeDatagram("pong", "127.0.0.1:9001")
+	unknown := udpfixture.CreateFakeDatagram("?", "not an address")
 
 	t.Run("matches when at least one datagram has been received", func(t *testing.T) {
 		fixture.AssertMatch(t, been.Received(), []*udp.Datagram{ping})
@@ -51,7 +49,7 @@ func TestReceived(t *testing.T) {
 	t.Run("reads as a sentence with the question", func(t *testing.T) {
 		recorder := screenplayfixture.NewRecorder()
 		echo := udpfixture.RunAnEchoUDPServer(t)
-		adam := internalfixture.NarratedActor("Adam", recorder, udpfixture.ListenOnAFreeUDPPort(t))
+		adam := udpfixture.NarratedActor("Adam", recorder, udpfixture.ListenOnAFreeUDPPort(t))
 
 		err := adam.Should(see.The(udp.DatagramsFrom(echo.String())).ShouldHave(been.Received()))
 		require.EqualError(

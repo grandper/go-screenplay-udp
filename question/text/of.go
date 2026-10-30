@@ -3,7 +3,7 @@ package text
 import (
 	"github.com/grandper/go-screenplay/v2/screenplay"
 
-	"github.com/grandper/go-screenplay-udp/question/internal/datagram"
+	"github.com/grandper/go-screenplay-udp/internal/question/datagram"
 	"github.com/grandper/go-screenplay-udp/udp"
 )
 

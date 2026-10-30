@@ -1,6 +1,6 @@
 package send
 
-import impl "github.com/grandper/go-screenplay-udp/action/internal/send"
+import impl "github.com/grandper/go-screenplay-udp/internal/action/send"
 
 // TheDatagram sends a datagram holding the text to the address given with To,
 // or to the sender of the last received datagram with

@@ -10,8 +10,7 @@ import (
 
 	"github.com/grandper/go-screenplay-udp/ability/communicate"
 	"github.com/grandper/go-screenplay-udp/action/listen"
-	"github.com/grandper/go-screenplay-udp/fixture"
-	internalfixture "github.com/grandper/go-screenplay-udp/internal/fixture"
+	"github.com/grandper/go-screenplay-udp/internal/fixture"
 	"github.com/grandper/go-screenplay-udp/question/local"
 	"github.com/grandper/go-screenplay-udp/udp"
 )
@@ -60,7 +59,7 @@ func TestOnTheMulticastGroup(t *testing.T) {
 
 	t.Run("is narrated", func(t *testing.T) {
 		recorder := screenplayfixture.NewRecorder()
-		adam := internalfixture.NarratedActor("Adam", recorder, nil)
+		adam := fixture.NarratedActor("Adam", recorder, nil)
 
 		require.NoError(t, adam.AttemptsTo(listen.OnTheMulticastGroup(multicastGroup)))
 

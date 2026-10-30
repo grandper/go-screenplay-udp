@@ -9,7 +9,7 @@ import (
 
 	"github.com/grandper/go-screenplay-udp/ability/communicate"
 	"github.com/grandper/go-screenplay-udp/action/send"
-	"github.com/grandper/go-screenplay-udp/fixture"
+	"github.com/grandper/go-screenplay-udp/internal/fixture"
 	"github.com/grandper/go-screenplay-udp/question/local"
 	"github.com/grandper/go-screenplay-udp/udp"
 )

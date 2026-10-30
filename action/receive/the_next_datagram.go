@@ -1,6 +1,6 @@
 package receive
 
-import impl "github.com/grandper/go-screenplay-udp/action/internal/receive"
+import impl "github.com/grandper/go-screenplay-udp/internal/action/receive"
 
 // TheNextDatagram receives the next datagram and stores it, where the question
 // udp.Datagrams finds it. The actor waits at most its timeout (see

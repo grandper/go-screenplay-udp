@@ -11,8 +11,8 @@ import (
 	"github.com/grandper/go-screenplay-udp/ability/communicate"
 	"github.com/grandper/go-screenplay-udp/action/receive"
 	"github.com/grandper/go-screenplay-udp/action/send"
-	"github.com/grandper/go-screenplay-udp/fixture"
 	impl "github.com/grandper/go-screenplay-udp/internal/ability"
+	"github.com/grandper/go-screenplay-udp/internal/fixture"
 	"github.com/grandper/go-screenplay-udp/udp"
 )
 

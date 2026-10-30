@@ -11,7 +11,6 @@ import (
 	"github.com/grandper/go-screenplay-udp/ability/communicate"
 	"github.com/grandper/go-screenplay-udp/action/listen"
 	"github.com/grandper/go-screenplay-udp/action/send"
-	udpfixture "github.com/grandper/go-screenplay-udp/fixture"
 	"github.com/grandper/go-screenplay-udp/internal/fixture"
 	"github.com/grandper/go-screenplay-udp/question/local"
 	"github.com/grandper/go-screenplay-udp/udp"
@@ -26,8 +25,8 @@ func TestNarratedActor(t *testing.T) {
 
 	t.Run("records the narration of the actor", func(t *testing.T) {
 		recorder := screenplayfixture.NewRecorder()
-		peer := udpfixture.ListenOnAFreeUDPPort(t)
-		adam := fixture.NarratedActor("Adam", recorder, udpfixture.ListenOnAFreeUDPPort(t))
+		peer := fixture.ListenOnAFreeUDPPort(t)
+		adam := fixture.NarratedActor("Adam", recorder, fixture.ListenOnAFreeUDPPort(t))
 
 		require.NoError(t, adam.AttemptsTo(send.TheDatagram("ping").To(peer.LocalAddr().String())))
 
@@ -40,7 +39,7 @@ func TestNarratedActor(t *testing.T) {
 	})
 
 	t.Run("gives the actor the ability to communicate over UDP using the connection", func(t *testing.T) {
-		conn := udpfixture.ListenOnAFreeUDPPort(t)
+		conn := fixture.ListenOnAFreeUDPPort(t)
 		adam := fixture.NarratedActor("Adam", screenplayfixture.NewRecorder(), conn)
 
 		assert.True(t, adam.HasAbilityTo(communicate.OverUDP()))
@@ -64,8 +63,8 @@ func TestNarratedActor(t *testing.T) {
 
 	t.Run("creates independent actors", func(t *testing.T) {
 		recorder := screenplayfixture.NewRecorder()
-		adam := fixture.NarratedActor("Adam", recorder, udpfixture.ListenOnAFreeUDPPort(t))
-		eve := fixture.NarratedActor("Eve", recorder, udpfixture.ListenOnAFreeUDPPort(t))
+		adam := fixture.NarratedActor("Adam", recorder, fixture.ListenOnAFreeUDPPort(t))
+		eve := fixture.NarratedActor("Eve", recorder, fixture.ListenOnAFreeUDPPort(t))
 
 		adamAddress, err := adam.AsksFor(local.UDPAddress())
 		require.NoError(t, err)

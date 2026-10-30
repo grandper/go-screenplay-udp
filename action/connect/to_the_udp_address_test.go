@@ -13,8 +13,7 @@ import (
 	"github.com/grandper/go-screenplay-udp/action/connect"
 	"github.com/grandper/go-screenplay-udp/action/receive"
 	"github.com/grandper/go-screenplay-udp/action/send"
-	"github.com/grandper/go-screenplay-udp/fixture"
-	internalfixture "github.com/grandper/go-screenplay-udp/internal/fixture"
+	"github.com/grandper/go-screenplay-udp/internal/fixture"
 	"github.com/grandper/go-screenplay-udp/resolution/been"
 	"github.com/grandper/go-screenplay-udp/udp"
 )
@@ -65,7 +64,7 @@ func TestToTheUDPAddress(t *testing.T) {
 	t.Run("is narrated", func(t *testing.T) {
 		recorder := screenplayfixture.NewRecorder()
 		echo := fixture.RunAnEchoUDPServer(t)
-		adam := internalfixture.NarratedActor("Adam", recorder, nil)
+		adam := fixture.NarratedActor("Adam", recorder, nil)
 
 		require.NoError(t, adam.AttemptsTo(connect.ToTheUDPAddress(echo.String())))
 

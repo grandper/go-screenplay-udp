@@ -16,8 +16,7 @@ import (
 	"github.com/grandper/go-screenplay-udp/ability/communicate"
 	"github.com/grandper/go-screenplay-udp/action/receive"
 	"github.com/grandper/go-screenplay-udp/action/send"
-	"github.com/grandper/go-screenplay-udp/fixture"
-	internalfixture "github.com/grandper/go-screenplay-udp/internal/fixture"
+	"github.com/grandper/go-screenplay-udp/internal/fixture"
 	"github.com/grandper/go-screenplay-udp/udp"
 )
 
@@ -139,7 +138,7 @@ func TestTheNextDatagram(t *testing.T) {
 	t.Run("is narrated", func(t *testing.T) {
 		recorder := screenplayfixture.NewRecorder()
 		echo := fixture.RunAnEchoUDPServer(t)
-		adam := internalfixture.NarratedActor("Adam", recorder, fixture.ListenOnAFreeUDPPort(t))
+		adam := fixture.NarratedActor("Adam", recorder, fixture.ListenOnAFreeUDPPort(t))
 		require.NoError(t, adam.AttemptsTo(send.TheDatagram("ping").To(echo.String())))
 
 		require.NoError(t, adam.AttemptsTo(receive.TheNextDatagram()))

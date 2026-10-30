@@ -12,8 +12,7 @@ import (
 	"github.com/grandper/go-screenplay-udp/ability/communicate"
 	"github.com/grandper/go-screenplay-udp/action/receive"
 	"github.com/grandper/go-screenplay-udp/action/send"
-	"github.com/grandper/go-screenplay-udp/fixture"
-	questionfixture "github.com/grandper/go-screenplay-udp/question/fixture"
+	"github.com/grandper/go-screenplay-udp/internal/fixture"
 	"github.com/grandper/go-screenplay-udp/question/sender"
 	"github.com/grandper/go-screenplay-udp/udp"
 )
@@ -40,7 +39,7 @@ func TestOf(t *testing.T) {
 	})
 
 	t.Run("implements the stringer interface", func(t *testing.T) {
-		pong := questionfixture.CreateFakeDatagram("pong", "127.0.0.1:9000")
+		pong := fixture.CreateFakeDatagram("pong", "127.0.0.1:9000")
 		wrapped := screenplayfixture.NewFakeQuestion("the datagram", pong)
 		assert.Equal(t, "sender of the datagram", sender.Of(wrapped).String())
 		assert.Equal(t, "sender of last of UDP datagrams", sender.Of(last.Of(udp.Datagrams())).String())
