@@ -62,6 +62,11 @@ var (
 	// ErrNoDatagramReceived is returned when the actor replies to the sender of
 	// the last datagram while it has received none.
 	ErrNoDatagramReceived = errors.New("no datagram has been received")
+
+	// ErrDatagramsExceedTheBound is wrapped by the error returned when keeping
+	// one more datagram would hold more bytes than the actor may buffer in
+	// memory (see screenplay.WithMaxBufferedSize).
+	ErrDatagramsExceedTheBound = errors.New("the datagrams kept exceed the buffered size of the actor")
 )
 
 // CommunicateOverUDP enables the actor to communicate over UDP. The
@@ -95,6 +100,8 @@ type CommunicateOverUDPAbility struct {
 	mutex    sync.RWMutex
 	conn     *net.UDPConn
 	received []*Datagram
+	// kept is the number of bytes the payloads of the received datagrams hold.
+	kept int
 }
 
 // UsingTheConnection provides the UDP connection to the ability; it reads
@@ -155,6 +162,7 @@ func (c *CommunicateOverUDPAbility) Forget() error {
 
 	c.address = ""
 	c.received = nil
+	c.kept = 0
 	if c.conn == nil {
 		return nil
 	}
@@ -179,9 +187,15 @@ var _ screenplay.Ability = (*CommunicateOverUDPAbility)(nil)
 //	err := ability.TheAbilityOf(theActor).ToSend(data, "127.0.0.1:9000")
 //
 // It never fails. When the actor is nil or does not have the ability, every
-// operation fails with screenplay.ErrActorMissingAbility.
+// operation fails with screenplay.ErrActorMissingAbility. The datagrams the
+// actor keeps are bounded by the buffered size of its production.
 func TheAbilityOf(actor *screenplay.Actor) *Operations {
-	return &Operations{ability: screenplay.UseAnAbilityOf(actor).That(CommunicateOverUDP())}
+	operations := &Operations{ability: screenplay.UseAnAbilityOf(actor).That(CommunicateOverUDP())}
+	if actor != nil {
+		operations.bound = actor.MaxBufferedSize()
+	}
+
+	return operations
 }
 
 // Operations holds the operations of the actor's ability to communicate over
@@ -189,6 +203,9 @@ func TheAbilityOf(actor *screenplay.Actor) *Operations {
 // holds only its settings, so a test cannot send a datagram without an action.
 type Operations struct {
 	ability *CommunicateOverUDPAbility
+	// bound is the number of bytes the datagrams kept may hold, in all; zero
+	// or less is no bound.
+	bound int
 }
 
 // ToListenOn binds the connection of the ability to the address. It fails
@@ -307,8 +324,11 @@ func (o *Operations) ToSendToTheSenderOfTheLastDatagram(data []byte) error {
 
 // ToReceiveTheNextDatagram waits for the next datagram, until the context
 // ends, and stores it. A datagram that does not come in time is reported with
-// an error wrapping ErrFailedToReceive and the error of the context. When the
-// actor does not have the ability, it fails with
+// an error wrapping ErrFailedToReceive and the error of the context. A
+// datagram that would make the datagrams kept hold more bytes than the actor
+// may buffer in memory is dropped, with an error wrapping
+// ErrDatagramsExceedTheBound, instead of exhausting the memory of the test.
+// When the actor does not have the ability, it fails with
 // screenplay.ErrActorMissingAbility.
 func (o *Operations) ToReceiveTheNextDatagram(ctx context.Context) error {
 	conn, err := o.connection()
@@ -324,9 +344,8 @@ func (o *Operations) ToReceiveTheNextDatagram(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	c.store(datagram)
 
-	return nil
+	return c.store(datagram, o.bound)
 }
 
 // ToRetrieveDatagrams returns a copy of every datagram received, in the order
@@ -509,12 +528,26 @@ func (c *CommunicateOverUDPAbility) isOpen() bool {
 	return c.conn != nil
 }
 
-// store records a received datagram.
-func (c *CommunicateOverUDPAbility) store(datagram *Datagram) {
+// store records a received datagram, unless the datagrams kept would then
+// hold more bytes than the bound; a bound of zero or less is no bound.
+func (c *CommunicateOverUDPAbility) store(datagram *Datagram, bound int) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
+	size := len(datagram.data)
+	if bound > 0 && c.kept+size > bound {
+		return fmt.Errorf(
+			"%w: %d bytes are kept, a datagram of %d bytes would exceed %d bytes",
+			ErrDatagramsExceedTheBound,
+			c.kept,
+			size,
+			bound,
+		)
+	}
 	c.received = append(c.received, datagram)
+	c.kept += size
+
+	return nil
 }
 
 // resolve turns the address into a UDP address, failing with an error wrapping

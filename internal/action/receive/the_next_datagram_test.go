@@ -101,6 +101,24 @@ func TestTheNext(t *testing.T) {
 		require.NoError(t, adam.Exit())
 	})
 
+	t.Run("fails when the datagrams kept would exceed the buffered size of the actor", func(t *testing.T) {
+		echo := fixture.RunAnEchoUDPServer(t)
+		adam := screenplay.NewProduction(screenplay.WithMaxBufferedSize(1)).
+			SetTheStage(screenplay.CastOfStandardActors()).
+			ActorNamed("Adam").
+			WhoCan(communicate.OverUDP().ListeningOnAFreePort())
+		require.NoError(
+			t,
+			adam.AttemptsTo(send.TheDatagram("1").To(echo.String()), send.TheDatagram("2").To(echo.String())),
+		)
+
+		err := adam.AttemptsTo(impl.TheNext(2).Datagrams())
+
+		require.ErrorIs(t, err, udp.ErrDatagramsExceedTheBound)
+		require.NoError(t, adam.Should(see.The(number.Of(udp.Datagrams())).Should(be.EqualTo(1))))
+		require.NoError(t, adam.Exit())
+	})
+
 	t.Run("fails when the amount is not positive", func(t *testing.T) {
 		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 		require.ErrorIs(t, adam.AttemptsTo(impl.TheNext(0).Datagrams()), udp.ErrNumberOfDatagramsIsNotPositive)

@@ -6,7 +6,8 @@
 //	datagrams, err := anActor.AsksFor(udp.DatagramsFrom("127.0.0.1:9000")) // a []*udp.Datagram
 //	errors.Is(err, udp.ErrFailedToListen)
 //
-// A datagram is read through Data(), Text() and Sender(). A question composes
+// A datagram is read through Data(), Text() and Sender(). The datagrams kept
+// are bounded by the buffered size of the actor's production. A question composes
 // with the core questions, the questions about a datagram and the resolutions
 // of the extension:
 //

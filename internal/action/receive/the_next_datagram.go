@@ -80,7 +80,8 @@ func (a *TheNextDatagramAction) TimingOutAfter(amount int) *timing.DurationBuild
 
 // PerformAs performs the action as the provided actor. It fails with
 // udp.ErrNumberOfDatagramsIsNotPositive when the number of datagrams is
-// not positive.
+// not positive, and with an error wrapping udp.ErrDatagramsExceedTheBound
+// when keeping a datagram would exceed the buffered size of the actor.
 func (a *TheNextDatagramAction) PerformAs(theActor *screenplay.Actor) error {
 	if a.amount <= 0 {
 		return udp.ErrNumberOfDatagramsIsNotPositive

@@ -48,6 +48,11 @@ var (
 	// ErrNoDatagramReceived is returned when the actor replies to the sender of
 	// the last datagram while it has received none.
 	ErrNoDatagramReceived = impl.ErrNoDatagramReceived
+
+	// ErrDatagramsExceedTheBound is wrapped by the error returned when keeping
+	// one more datagram would hold more bytes than the actor may buffer in
+	// memory (see screenplay.WithMaxBufferedSize).
+	ErrDatagramsExceedTheBound = impl.ErrDatagramsExceedTheBound
 )
 
 // The errors the actions report. Nothing panics when an action is built; a

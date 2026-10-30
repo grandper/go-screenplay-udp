@@ -152,6 +152,8 @@ A datagram that does not come in time fails the action with an error wrapping `u
 
 Datagrams that arrive while the actor is not receiving wait in the buffer of the socket, so they are received by a later action. A datagram larger than the buffer of the socket is truncated by the system, as UDP does.
 
+The datagrams received are kept until the actor exits, bounded by the buffered size of its production (64 MiB by default, see `screenplay.WithMaxBufferedSize`). A datagram that would make them exceed it is dropped, and the action fails with an error wrapping `udp.ErrDatagramsExceedTheBound`, instead of exhausting the memory of the test.
+
 ### stop.ListeningOverUDP
 Closes the connection of the actor and forgets the address it was bound to, so that the actor can listen again elsewhere. The datagrams received so far are kept:
 ```go
@@ -227,6 +229,7 @@ if errors.Is(err, udp.ErrFailedToListen) {
 | `udp.ErrFailedToSend` | the system refuses the datagram (wrapped) |
 | `udp.ErrFailedToReceive` | no datagram comes in time, or the read fails (wrapped, with `context.DeadlineExceeded` or `context.Canceled`) |
 | `udp.ErrNoDatagramReceived` | the actor replies to the sender of the last datagram while it received none |
+| `udp.ErrDatagramsExceedTheBound` | keeping one more datagram would exceed the buffered size of the actor (wrapped) |
 | `udp.ErrAddressIsEmpty` | an action is given an empty address |
 | `udp.ErrNumberOfDatagramsIsNotPositive` | `receive.TheNext` is given a number that is not positive |
 | `udp.ErrDatagramIsNil` | a question about a datagram is asked about a nil datagram (wrapped) |

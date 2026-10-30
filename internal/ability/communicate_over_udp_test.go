@@ -310,6 +310,37 @@ func TestCommunicateOverUDP(t *testing.T) {
 			require.NoError(t, adam.Exit())
 		})
 
+		t.Run("drops a datagram that would exceed the buffered size of the actor", func(t *testing.T) {
+			echo := fixture.RunAnEchoUDPServer(t)
+			adam := screenplay.NewProduction(screenplay.WithMaxBufferedSize(6)).
+				SetTheStage(screenplay.CastOfStandardActors()).
+				ActorNamed("Adam").
+				WhoCan(impl.CommunicateOverUDP().ListeningOnAFreePort())
+			ctx, cancel := context.WithTimeout(t.Context(), timeout)
+			defer cancel()
+			require.NoError(t, impl.TheAbilityOf(adam).ToSend([]byte("four"), echo.String()))
+			require.NoError(t, impl.TheAbilityOf(adam).ToSend([]byte("more"), echo.String()))
+			require.NoError(t, impl.TheAbilityOf(adam).ToSend([]byte("ok"), echo.String()))
+			require.NoError(t, impl.TheAbilityOf(adam).ToReceiveTheNextDatagram(ctx))
+
+			err := impl.TheAbilityOf(adam).ToReceiveTheNextDatagram(ctx)
+
+			require.ErrorIs(t, err, impl.ErrDatagramsExceedTheBound)
+			require.EqualError(
+				t,
+				err,
+				"the datagrams kept exceed the buffered size of the actor: "+
+					"4 bytes are kept, a datagram of 4 bytes would exceed 6 bytes",
+			)
+			require.NoError(t, impl.TheAbilityOf(adam).ToReceiveTheNextDatagram(ctx))
+			datagrams, err := impl.TheAbilityOf(adam).ToRetrieveDatagrams()
+			require.NoError(t, err)
+			require.Len(t, datagrams, 2)
+			assert.Equal(t, "four", datagrams[0].Text())
+			assert.Equal(t, "ok", datagrams[1].Text())
+			require.NoError(t, adam.Exit())
+		})
+
 		t.Run("clears the read deadline of the connection afterwards", func(t *testing.T) {
 			conn := fixture.ListenOnAFreeUDPPort(t)
 			peer := fixture.ListenOnAFreeUDPPort(t)

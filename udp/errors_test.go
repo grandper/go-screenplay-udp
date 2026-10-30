@@ -31,6 +31,7 @@ func TestErrors(t *testing.T) {
 		udp.ErrFailedToSend:              impl.ErrFailedToSend,
 		udp.ErrFailedToReceive:           impl.ErrFailedToReceive,
 		udp.ErrNoDatagramReceived:        impl.ErrNoDatagramReceived,
+		udp.ErrDatagramsExceedTheBound:   impl.ErrDatagramsExceedTheBound,
 	}
 	all := []error{
 		udp.ErrAddressIsEmpty,
@@ -69,6 +70,11 @@ func TestErrors(t *testing.T) {
 		require.EqualError(t, udp.ErrFailedToSend, "failed to send the datagram")
 		require.EqualError(t, udp.ErrFailedToReceive, "failed to receive a datagram")
 		require.EqualError(t, udp.ErrNoDatagramReceived, "no datagram has been received")
+		require.EqualError(
+			t,
+			udp.ErrDatagramsExceedTheBound,
+			"the datagrams kept exceed the buffered size of the actor",
+		)
 		require.EqualError(t, udp.ErrAddressIsEmpty, "the UDP address must be provided")
 		require.EqualError(
 			t,
