@@ -7,9 +7,9 @@
 //	errors.Is(err, udp.ErrFailedToListen)
 //
 // A datagram is read through Data(), Text() and Sender(). The datagrams kept
-// are bounded by the buffered size of the actor's production. A question composes
-// with the core questions, the questions about a datagram and the resolutions
-// of the extension:
+// are bounded by the buffered size of the actor's production. A question
+// composes with the core questions, the questions about a datagram and the
+// resolutions of the extension:
 //
 //	err := anActor.Should(see.The(udp.Datagrams()).ShouldHave(been.Received()))
 //	err := anActor.Should(see.The(text.Of(last.Of(udp.Datagrams()))).Should(be.EqualTo("pong")))

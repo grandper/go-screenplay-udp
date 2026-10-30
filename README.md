@@ -61,7 +61,7 @@ Alternatively, give the ability a connection you opened yourself, with `net.List
 conn, _ := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 9000})
 actor := screenplay.ActorNamed("UDP User").WhoCan(communicate.OverUDP().UsingTheConnection(conn))
 ```
-An actor without a connection or an address fails every action with `udp.ErrUDPConnectionNotSet`, "no UDP connection was given", until it performs one of the `listen` actions or `connect.ToTheUDPAddress`.
+An actor without a connection or an address fails every action with `udp.ErrUDPConnectionNotSet`, "no UDP connection was given", until it performs one of the `listen` actions or `connect.ToTheUDPAddress`; `udp.Datagrams()` answers with no datagram in the meantime.
 
 > **_NOTE:_** When the actor exits (`actor.Exit()`), the ability forgets what it holds: the received datagrams are dropped and the connection is closed, whether it was given with `UsingTheConnection` or bound by the ability itself.
 
@@ -80,6 +80,8 @@ err := actor.AttemptsTo(send.TheDatagram("ping").To("127.0.0.1:9000"))
 // UDP User attempts to send the datagram "ping" to "127.0.0.1:9000"
 ```
 Nothing panics when an action is built. A mistake, such as an empty address, is reported when the actor performs the action, with an error of the `udp` package: `udp.ErrAddressIsEmpty` or `udp.ErrNumberOfDatagramsIsNotPositive`. An address that cannot be resolved is reported with an error wrapping `udp.ErrInvalidAddress`.
+
+An address with a hostname, such as `"localhost:9000"`, is resolved through the resolver of the system every time an action, a question or a resolution uses it, so a scenario written with hostnames depends on DNS and sends it a query at each step. Prefer IP literals, such as `"127.0.0.1:9000"`.
 
 ### listen.OnTheUDPAddress
 Binds the connection of the actor to an address, when its ability was given neither a connection nor an address. A port of 0 lets the system choose a free one:
