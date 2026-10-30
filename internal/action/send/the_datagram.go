@@ -1,6 +1,8 @@
 package send
 
 import (
+	"slices"
+
 	"github.com/grandper/go-screenplay/v2/screenplay"
 
 	impl "github.com/grandper/go-screenplay-udp/internal/ability"
@@ -24,14 +26,15 @@ func TheDatagram(text string) *TheDatagramAction {
 	}
 }
 
-// TheBinaryDatagram sends a datagram holding the bytes to the address given
-// with To; it reads "send the binary datagram data to 127.0.0.1:9000":
+// TheBinaryDatagram sends a datagram holding a copy of the bytes, as they are
+// when the action is built, to the address given with To; it reads "send the
+// binary datagram data to 127.0.0.1:9000":
 //
 //	send.TheBinaryDatagram(data).To("127.0.0.1:9000")
 func TheBinaryDatagram(data []byte) *TheDatagramAction {
 	return &TheDatagramAction{
 		description: "send the binary datagram " + verdict.Describe(data),
-		data:        data,
+		data:        slices.Clone(data),
 	}
 }
 

@@ -91,6 +91,25 @@ func TestTheBinaryDatagram(t *testing.T) {
 		require.NoError(t, adam.Exit())
 	})
 
+	t.Run("sends the bytes as they were when the action was built", func(t *testing.T) {
+		peer := fixture.ListenOnAFreeUDPPort(t)
+		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
+		payload := []byte{0x00, 0x01, 0x02}
+		theAction := impl.TheBinaryDatagram(payload).To(peer.LocalAddr().String())
+		payload[0] = 0xff
+
+		require.NoError(t, adam.AttemptsTo(theAction))
+
+		data, _ := readFrom(t, peer)
+		assert.Equal(t, []byte{0x00, 0x01, 0x02}, data)
+		assert.Equal(
+			t,
+			`send the binary datagram "\x00\x01\x02" to "`+peer.LocalAddr().String()+`"`,
+			theAction.String(),
+		)
+		require.NoError(t, adam.Exit())
+	})
+
 	t.Run("fails when the datagram is too large", func(t *testing.T) {
 		peer := fixture.ListenOnAFreeUDPPort(t)
 		adam := screenplay.ActorNamed("Adam").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
