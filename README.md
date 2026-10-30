@@ -32,6 +32,7 @@ import (
     "github.com/grandper/go-screenplay/v2/screenplay"
     "github.com/grandper/go-screenplay/v2/action/see"
     "github.com/grandper/go-screenplay/v2/question/last"
+    "github.com/grandper/go-screenplay/v2/question/number"
     "github.com/grandper/go-screenplay/v2/resolution/be"
     "github.com/grandper/go-screenplay/v2/resolution/contain"
     "github.com/grandper/go-screenplay-udp/ability/communicate"
@@ -40,7 +41,6 @@ import (
     "github.com/grandper/go-screenplay-udp/action/receive"
     "github.com/grandper/go-screenplay-udp/action/send"
     "github.com/grandper/go-screenplay-udp/action/stop"
-    "github.com/grandper/go-screenplay-udp/fixture"
     "github.com/grandper/go-screenplay-udp/question/local"
     "github.com/grandper/go-screenplay-udp/question/payload"
     "github.com/grandper/go-screenplay-udp/question/sender"
@@ -173,7 +173,7 @@ err := actor.Should(see.The(udp.DatagramsFrom("127.0.0.1:9000")).ShouldHave(been
 err := actor.Should(see.The(number.Of(udp.Datagrams())).Should(be.EqualTo(2)))
 lastDatagram, err := actor.AsksFor(last.Of(udp.Datagrams())) // lastDatagram is an *udp.Datagram
 ```
-A datagram is read through `Data()`, a copy of its payload, `Text()`, the payload as a text, and `Sender()`, a copy of the `*net.UDPAddr` it was sent from.
+A datagram is read through `Data()`, a copy of its payload, `Text()`, the payload as a text, and `Sender()`, a copy of the `*net.UDPAddr` it was sent from, nil when it is unknown. `IsFrom(address)` tells whether it was sent from a `*net.UDPAddr`. A datagram does not change once received.
 
 ### The parts of a datagram
 `text.Of`, `payload.Of` and `sender.Of` take a question that answers with one datagram, such as `last.Of(udp.Datagrams())`, and answer with a part of it, so that a core resolution inspects it:
@@ -193,13 +193,6 @@ address, err := actor.AsksFor(local.UDPAddress()) // address is a *net.UDPAddr
 // UDP User asks for the local UDP address
 ```
 
-### Fake answers
-The `question/fixture` package builds the answer of `udp.Datagrams()` without a UDP peer, to test code that receives it. An address that cannot be resolved leaves the sender unknown:
-```go
-pong := fixture.CreateFakeDatagram("pong", "127.0.0.1:9000")
-raw := fixture.CreateFakeBinaryDatagram([]byte{0x00, 0x01}, "127.0.0.1:9000")
-```
-
 ## Resolutions
 The `been` package holds the resolutions of this extension. Each one reads after the verb `ShouldHave`, and a negation lives only in the verb: `ShouldNotHave(been.Received())` reads "should not have been received".
 
@@ -214,45 +207,40 @@ err := actor.Should(see.The(udp.DatagramsFrom("127.0.0.1:9000")).ShouldNotHave(b
 // UDP User should see that the UDP datagrams from "127.0.0.1:9000" should not have been received
 ```
 
-## Testing with a UDP peer
-The `fixture` package runs in-process UDP peers so scenarios can run without an external system. Every helper takes a `*testing.T` and registers its own cleanup, so the peer is stopped when the test ends:
+## Errors
+Every error the extension reports is a sentinel of the `udp` package, or wraps one, so a test tells them apart with `errors.Is`:
 ```go
-// Runs a server on a free port of the loopback interface that sends every
-// datagram back to its sender, and returns its address.
-echo := fixture.RunAnEchoUDPServer(t)
-
-// Runs a server that replies with what the function returns, or does not
-// reply when it returns nil.
-server := fixture.RunAUDPServer(t, func(data []byte) []byte { return []byte("pong") })
-
-// Binds a connection to a free port of the loopback interface, to give to
-// UsingTheConnection or to play a peer by hand.
-conn := fixture.ListenOnAFreeUDPPort(t)
-```
-
-## Putting it all together
-A complete scenario, from running the echo server to asserting on the reply:
-```go
-func TestReceivesTheEchoOfADatagram(t *testing.T) {
-    echo := fixture.RunAnEchoUDPServer(t)
-    actor := screenplay.ActorNamed("UDP User").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
-
-    require.NoError(t, actor.AttemptsTo(
-        send.TheDatagram("ping").To(echo.String()),
-        receive.TheNextDatagram(),
-    ))
-
-    require.NoError(t, actor.Should(
-        see.The(udp.Datagrams()).ShouldHave(been.ReceivedFrom(echo.String())),
-        see.The(text.Of(last.Of(udp.Datagrams()))).Should(be.EqualTo("ping")),
-    ))
+err := actor.AttemptsTo(listen.OnTheUDPAddress("127.0.0.1:1"))
+if errors.Is(err, udp.ErrFailedToListen) {
+    // the port is privileged or taken
 }
 ```
-And two actors talking to each other, one playing the server:
+| Error | Reported when |
+|---|---|
+| `udp.ErrUDPConnectionNotSet` | the actor holds neither a connection nor an address to listen on |
+| `udp.ErrFailedToListen` | the address cannot be bound, or the multicast group cannot be joined (wrapped) |
+| `udp.ErrFailedToConnect` | the connection to the remote address cannot be opened (wrapped) |
+| `udp.ErrAlreadyListening` | the actor listens or connects while it already holds a connection |
+| `udp.ErrInvalidAddress` | an address cannot be resolved (wrapped) |
+| `udp.ErrDestinationNotSet` | a datagram is sent without an address while the actor is not connected |
+| `udp.ErrConnectedToAnotherAddress` | a datagram is sent to an address other than the one the actor connected to (wrapped) |
+| `udp.ErrFailedToSend` | the system refuses the datagram (wrapped) |
+| `udp.ErrFailedToReceive` | no datagram comes in time, or the read fails (wrapped, with `context.DeadlineExceeded` or `context.Canceled`) |
+| `udp.ErrNoDatagramReceived` | the actor replies to the sender of the last datagram while it received none |
+| `udp.ErrAddressIsEmpty` | an action is given an empty address |
+| `udp.ErrNumberOfDatagramsIsNotPositive` | `receive.TheNext` is given a number that is not positive |
+| `udp.ErrDatagramIsNil` | a question about a datagram is asked about a nil datagram (wrapped) |
+
+An actor who cannot communicate over UDP fails every action and question with `screenplay.ErrActorMissingAbility`.
+
+## Putting it all together
+A complete scenario, with two actors talking to each other, one playing the server. Each actor exits when the test ends, which closes its connection:
 ```go
 func TestAServerRepliesToAClient(t *testing.T) {
     server := screenplay.ActorNamed("Server").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
     client := screenplay.ActorNamed("Client").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
+    t.Cleanup(func() { _ = client.Exit() })
+    t.Cleanup(func() { _ = server.Exit() })
     serverAddress, err := server.AsksFor(local.UDPAddress())
     require.NoError(t, err)
 
@@ -263,9 +251,35 @@ func TestAServerRepliesToAClient(t *testing.T) {
     ))
     require.NoError(t, client.AttemptsTo(receive.TheNextDatagram()))
 
+    require.NoError(t, server.Should(
+        see.The(text.Of(last.Of(udp.Datagrams()))).Should(be.EqualTo("ping")),
+    ))
     require.NoError(t, client.Should(
+        see.The(udp.Datagrams()).ShouldHave(been.ReceivedFrom(serverAddress.String())),
         see.The(text.Of(last.Of(udp.DatagramsFrom(serverAddress.String())))).Should(be.EqualTo("pong")),
     ))
+}
+```
+When the system under test is not an actor, play the peer by hand with the `net` package. A connection bound to port 0 of the loopback interface gets a free port:
+```go
+func TestThePeerReceivesTheDatagram(t *testing.T) {
+    peer, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+    require.NoError(t, err)
+    t.Cleanup(func() { _ = peer.Close() })
+    actor := screenplay.ActorNamed("UDP User").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
+    t.Cleanup(func() { _ = actor.Exit() })
+
+    require.NoError(t, actor.AttemptsTo(send.TheDatagram("ping").To(peer.LocalAddr().String())))
+
+    buffer := make([]byte, 1024)
+    read, sender, err := peer.ReadFromUDP(buffer)
+    require.NoError(t, err)
+    assert.Equal(t, "ping", string(buffer[:read]))
+
+    _, err = peer.WriteToUDP([]byte("pong"), sender)
+    require.NoError(t, err)
+    require.NoError(t, actor.AttemptsTo(receive.TheNextDatagram()))
+    require.NoError(t, actor.Should(see.The(text.Of(last.Of(udp.Datagrams()))).Should(be.EqualTo("pong"))))
 }
 ```
 
