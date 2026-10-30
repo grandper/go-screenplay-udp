@@ -310,6 +310,23 @@ func TestCommunicateOverUDP(t *testing.T) {
 			require.NoError(t, adam.Exit())
 		})
 
+		t.Run("clears the read deadline of the connection afterwards", func(t *testing.T) {
+			conn := fixture.ListenOnAFreeUDPPort(t)
+			peer := fixture.ListenOnAFreeUDPPort(t)
+			adam := screenplay.ActorNamed("Adam").WhoCan(impl.CommunicateOverUDP().UsingTheConnection(conn))
+			ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+			defer cancel()
+			require.ErrorIs(t, impl.TheAbilityOf(adam).ToReceiveTheNextDatagram(ctx), context.DeadlineExceeded)
+
+			_, err := peer.WriteToUDP([]byte("ping"), conn.LocalAddr().(*net.UDPAddr))
+			require.NoError(t, err)
+
+			read, _, err := conn.ReadFromUDP(make([]byte, 1024))
+			require.NoError(t, err)
+			assert.Equal(t, 4, read)
+			require.NoError(t, adam.Exit())
+		})
+
 		t.Run("fails when the context is cancelled", func(t *testing.T) {
 			adam := screenplay.ActorNamed("Adam").WhoCan(impl.CommunicateOverUDP().ListeningOnAFreePort())
 			ctx, cancel := context.WithCancel(t.Context())

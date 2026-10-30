@@ -544,6 +544,8 @@ func send(data []byte, write func() (int, error)) error {
 
 // receive reads the next datagram of the connection, until the context ends.
 // The deadline of the context bounds the read, and its cancellation ends it.
+// The read deadline is cleared afterwards, so that a connection the actor was
+// given reads as before.
 func receive(ctx context.Context, conn *net.UDPConn) (*Datagram, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrFailedToReceive, err)
@@ -553,8 +555,19 @@ func receive(ctx context.Context, conn *net.UDPConn) (*Datagram, error) {
 	if err := conn.SetReadDeadline(deadline); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrFailedToReceive, err)
 	}
-	stop := context.AfterFunc(ctx, func() { _ = conn.SetReadDeadline(time.Now()) })
-	defer stop()
+	interrupted := make(chan struct{})
+	stop := context.AfterFunc(ctx, func() {
+		defer close(interrupted)
+		_ = conn.SetReadDeadline(time.Now())
+	})
+	defer func() {
+		// The interruption, once started, must have set its deadline before
+		// the deadline is cleared.
+		if !stop() {
+			<-interrupted
+		}
+		_ = conn.SetReadDeadline(time.Time{})
+	}()
 
 	buffer := make([]byte, maxDatagramSize)
 	read, sender, err := conn.ReadFromUDP(buffer)
