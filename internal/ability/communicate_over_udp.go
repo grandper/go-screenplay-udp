@@ -330,8 +330,9 @@ func (o *Operations) ToReceiveTheNextDatagram(ctx context.Context) error {
 }
 
 // ToRetrieveDatagrams returns a copy of every datagram received, in the order
-// they were received. When the actor does not have the ability, it fails with
-// screenplay.ErrActorMissingAbility.
+// they were received, whether or not the ability holds a connection: the
+// datagrams are kept after the connection is closed. When the actor does not
+// have the ability, it fails with screenplay.ErrActorMissingAbility.
 func (o *Operations) ToRetrieveDatagrams() ([]*Datagram, error) {
 	return o.retrieveDatagrams(func(*Datagram) bool { return true })
 }
@@ -349,11 +350,14 @@ func (o *Operations) ToRetrieveDatagramsFrom(address string) ([]*Datagram, error
 	return o.retrieveDatagrams(func(datagram *Datagram) bool { return datagram.IsFrom(sender) })
 }
 
+// retrieveDatagrams returns a copy of the wanted datagrams. It does not need
+// the connection, so that it neither binds the address as a side effect nor
+// fails once the connection is closed.
 func (o *Operations) retrieveDatagrams(wanted func(*Datagram) bool) ([]*Datagram, error) {
-	if _, err := o.connection(); err != nil {
-		return nil, err
-	}
 	c := o.ability
+	if c == nil {
+		return nil, screenplay.ErrActorMissingAbility
+	}
 
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()

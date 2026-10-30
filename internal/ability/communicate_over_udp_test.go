@@ -102,8 +102,20 @@ func TestCommunicateOverUDP(t *testing.T) {
 		)
 		require.ErrorIs(t, impl.TheAbilityOf(adam).ToReceiveTheNextDatagram(t.Context()), impl.ErrUDPConnectionNotSet)
 		require.ErrorIs(t, impl.TheAbilityOf(adam).ToClose(), impl.ErrUDPConnectionNotSet)
-		_, err := impl.TheAbilityOf(adam).ToRetrieveDatagrams()
-		require.ErrorIs(t, err, impl.ErrUDPConnectionNotSet)
+		datagrams, err := impl.TheAbilityOf(adam).ToRetrieveDatagrams()
+		require.NoError(t, err)
+		assert.Empty(t, datagrams)
+	})
+
+	t.Run("does not bind the address to retrieve the datagrams", func(t *testing.T) {
+		adam := screenplay.ActorNamed("Adam").WhoCan(impl.CommunicateOverUDP().ListeningOn(unroutableAddress))
+
+		datagrams, err := impl.TheAbilityOf(adam).ToRetrieveDatagrams()
+
+		require.NoError(t, err)
+		assert.Empty(t, datagrams)
+		_, err = impl.TheAbilityOf(adam).ToRetrieveDatagramsFrom("127.0.0.1:9000")
+		require.NoError(t, err)
 	})
 
 	t.Run("listens", func(t *testing.T) {
@@ -407,8 +419,11 @@ func TestCommunicateOverUDP(t *testing.T) {
 				impl.TheAbilityOf(adam).ToSend([]byte("ping"), echo.String()),
 				impl.ErrUDPConnectionNotSet,
 			)
-			require.NoError(t, impl.TheAbilityOf(adam).ToListenOn("127.0.0.1:0"))
 			datagrams, err := impl.TheAbilityOf(adam).ToRetrieveDatagrams()
+			require.NoError(t, err)
+			assert.Len(t, datagrams, 1)
+			require.NoError(t, impl.TheAbilityOf(adam).ToListenOn("127.0.0.1:0"))
+			datagrams, err = impl.TheAbilityOf(adam).ToRetrieveDatagrams()
 			require.NoError(t, err)
 			assert.Len(t, datagrams, 1)
 			require.NoError(t, adam.Exit())

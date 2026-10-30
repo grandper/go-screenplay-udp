@@ -31,6 +31,7 @@ func TestListeningOverUDP(t *testing.T) {
 
 			err := adam.AttemptsTo(send.TheDatagram("ping").To(echo.String()))
 			require.ErrorIs(t, err, udp.ErrUDPConnectionNotSet)
+			require.NoError(t, adam.Should(see.The(number.Of(udp.Datagrams())).Should(be.EqualTo(1))))
 			require.NoError(t, adam.AttemptsTo(listen.OnAFreeUDPPort()))
 			require.NoError(t, adam.Should(see.The(number.Of(udp.Datagrams())).Should(be.EqualTo(1))))
 			require.NoError(t, adam.Exit())
