@@ -53,8 +53,9 @@ Then create an actor who can communicate over UDP. The address is bound the firs
 ```go
 actor := screenplay.ActorNamed("UDP User").WhoCan(communicate.OverUDP().ListeningOnAFreePort())
 actor := screenplay.ActorNamed("UDP User").WhoCan(communicate.OverUDP().ListeningOn("127.0.0.1:9000"))
-actor := screenplay.ActorNamed("UDP User").WhoCan(communicate.OverUDP().ListeningOn(":9000")) // every interface
+actor := screenplay.ActorNamed("UDP User").WhoCan(communicate.OverUDP().ListeningOn(":9000")) // every interface of the host
 ```
+An address without a host, such as `":9000"`, is reachable from every network the host is on, and the datagrams it receives are not authenticated. Prefer the loopback interface, with `ListeningOnAFreePort` or a `127.0.0.1` address, unless the scenario needs another network.
 Alternatively, give the ability a connection you opened yourself, with `net.ListenUDP`, `net.DialUDP` or `net.ListenMulticastUDP`:
 ```go
 conn, _ := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 9000})
