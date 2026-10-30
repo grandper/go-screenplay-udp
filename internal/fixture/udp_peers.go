@@ -1,7 +1,6 @@
 package fixture
 
 import (
-	"errors"
 	"net"
 	"testing"
 
@@ -55,16 +54,15 @@ func RunAUDPServer(t *testing.T, reply func(data []byte) []byte) *net.UDPAddr {
 	return address
 }
 
-// serve answers the datagrams received on the connection until it is closed.
+// serve answers the datagrams received on the connection until it is closed,
+// or until a read fails: a read that keeps failing, for example once a
+// deadline is set on the connection, must not spin.
 func serve(conn *net.UDPConn, reply func(data []byte) []byte) {
 	buffer := make([]byte, maxDatagramSize)
 	for {
 		read, sender, err := conn.ReadFromUDP(buffer)
-		if errors.Is(err, net.ErrClosed) {
-			return
-		}
 		if err != nil {
-			continue
+			return
 		}
 		if response := reply(buffer[:read]); response != nil {
 			_, _ = conn.WriteToUDP(response, sender)
