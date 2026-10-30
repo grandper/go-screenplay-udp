@@ -177,6 +177,8 @@ lastDatagram, err := actor.AsksFor(last.Of(udp.Datagrams())) // lastDatagram is 
 ```
 A datagram is read through `Data()`, a copy of its payload, `Text()`, the payload as a text, and `Sender()`, a copy of the `*net.UDPAddr` it was sent from, nil when it is unknown. `IsFrom(address)` tells whether it was sent from a `*net.UDPAddr`. A datagram does not change once received.
 
+> **_NOTE:_** The sender is the source address of the datagram as the system reports it. UDP does not authenticate it, so a scenario that relies on it, with `udp.DatagramsFrom`, `been.ReceivedFrom` or `ToTheSenderOfTheLastDatagram`, belongs on the loopback interface or on a network you trust.
+
 ### The parts of a datagram
 `text.Of`, `payload.Of` and `sender.Of` take a question that answers with one datagram, such as `last.Of(udp.Datagrams())`, and answer with a part of it, so that a core resolution inspects it:
 ```go
